@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("MEMBER") // "MEMBER" or "TRAINER"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile           Profile?
+  assignedTemplates AssignedTemplate[]
+  workoutSessions   WorkoutSession[]
+  bodyweightEntries BodyweightEntry[]
+  createdTemplates  WorkoutTemplate[]  @relation("CreatedTemplates")
+}
+
+model Profile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  age    Int?
+  height Float? // in cm
+  weight Float? // current weight in kg (also tracked in BodyweightEntry)
+  goal   String? // "FAT_LOSS", "MUSCLE_GAIN", "STRENGTH"
+  gender String?
+}
+
+model Exercise {
+  id                 String               @id @default(cuid())
+  name               String
+  defaultMuscleGroup String?
+  workoutDayExercises WorkoutDayExercise[]
+  workoutSets        WorkoutSet[]
+}
+
+model WorkoutTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdById String
+  createdBy   User     @relation("CreatedTemplates", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  days              WorkoutDay[]
+  assignedTemplates AssignedTemplate[]
+}
+
+model WorkoutDay {
+  id          String               @id @default(cuid())
+  templateId  String
+  template    WorkoutTemplate      @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  dayIndex    Int // 0 for Day 1, 1 for Day 2, etc.
+  title       String // "Push", "Pull", "Legs"
+  exercises   WorkoutDayExercise[]
+}
+
+model WorkoutDayExercise {
+  id           String     @id @default(cuid())
+  workoutDayId String
+  workoutDay   WorkoutDay @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
+  exerciseId   String
+  exercise     Exercise   @relation(fields: [exerciseId], references: [id])
+  
+  defaultSets  Int        @default(3)
+  defaultReps  Int        @default(10)
+  order        Int        @default(0)
+}
+
+model AssignedTemplate {
+  id         String          @id @default(cuid())
+  userId     String
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId String
+  template   WorkoutTemplate @relation(fields: [templateId], references: [id])
+  assignedAt DateTime        @default(now())
+  isActive   Boolean         @default(true) // Helper to find current one
+}
+
+model WorkoutSession {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date       DateTime @default(now())
+  notes      String?
+  templateId String?  // Optional link to which template this was based on (snapshot)
+
+  sets       WorkoutSet[]
+}
+
+model WorkoutSet {
+  id        String         @id @default(cuid())
+  sessionId String
+  session   WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+
+  setNumber Int
+  weight    Float
+  reps      Int
+  rpe       Float?
+}
+
+model BodyweightEntry {
+  id     String   @id @default(cuid())
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date   DateTime @default(now())
+  weight Float
+}
