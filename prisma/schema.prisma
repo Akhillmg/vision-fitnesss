@@ -6,24 +6,55 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      String   @default("MEMBER") // "MEMBER" or "TRAINER"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// --- CORE GYM MODELS ---
 
-  profile           Profile?
+model Gym {
+  id      String  @id @default(cuid())
+  name    String
+  code    String  @unique // The Gym Code for access
+  logo    String?
+  address String?
+
+  users    User[]
+  trainers TrainerProfile[]
+
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  Attendance Attendance[]
+  Membership Membership[]
+  Billing    Billing[]
+}
+
+model User {
+  id       String @id @default(cuid())
+  name     String
+  email    String @unique
+  password String
+  role     String @default("MEMBER") // "MEMBER", "TRAINER", "ADMIN"
+
+  gymId String
+  gym   Gym    @relation(fields: [gymId], references: [id])
+
+  profile        Profile?
+  trainerProfile TrainerProfile? // If role is TRAINER
+
+  // Member Relations
   assignedTemplates AssignedTemplate[]
   workoutSessions   WorkoutSession[]
-  bodyweightEntries BodyweightEntry[]
-  createdTemplates  WorkoutTemplate[]  @relation("CreatedTemplates")
+  dailyDiets        DailyDiet[]
+  progressEntries   ProgressEntry[]
+
+  // Prototype Relations
+  attendance     Attendance[]
+  memberships    Membership[]
+  billingHistory Billing[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Profile {
@@ -32,40 +63,59 @@ model Profile {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   age    Int?
-  height Float? // in cm
-  weight Float? // current weight in kg (also tracked in BodyweightEntry)
-  goal   String? // "FAT_LOSS", "MUSCLE_GAIN", "STRENGTH"
+  height Float? // cm
+  weight Float? // current kg
   gender String?
+  goal   String? // "FAT_LOSS", "MUSCLE_GAIN", "MAINTENANCE", "ENDURANCE"
+  level  String? // "BEGINNER", "INTERMEDIATE", "ADVANCED"
 }
 
+model TrainerProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  gymId String
+  gym   Gym    @relation(fields: [gymId], references: [id])
+
+  bio            String?
+  specialties    String?
+  availableSlots String? // JSON or text
+}
+
+// --- WORKOUT MODELS ---
+
 model Exercise {
-  id                 String               @id @default(cuid())
-  name               String
-  defaultMuscleGroup String?
+  id           String  @id @default(cuid())
+  name         String
+  muscleGroup  String // "CHEST", "BACK", "LEGS", etc.
+  videoUrl     String?
+  instructions String?
+
   workoutDayExercises WorkoutDayExercise[]
-  workoutSets        WorkoutSet[]
+  workoutSets         WorkoutSet[]
 }
 
 model WorkoutTemplate {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
   description String?
-  createdById String
-  createdBy   User     @relation("CreatedTemplates", fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdById String // Trainer ID
 
   days              WorkoutDay[]
   assignedTemplates AssignedTemplate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model WorkoutDay {
-  id          String               @id @default(cuid())
-  templateId  String
-  template    WorkoutTemplate      @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  dayIndex    Int // 0 for Day 1, 1 for Day 2, etc.
-  title       String // "Push", "Pull", "Legs"
-  exercises   WorkoutDayExercise[]
+  id         String               @id @default(cuid())
+  templateId String
+  template   WorkoutTemplate      @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  dayIndex   Int
+  title      String // "Push Day", "Leg Day"
+  exercises  WorkoutDayExercise[]
 }
 
 model WorkoutDayExercise {
@@ -74,10 +124,11 @@ model WorkoutDayExercise {
   workoutDay   WorkoutDay @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
   exerciseId   String
   exercise     Exercise   @relation(fields: [exerciseId], references: [id])
-  
-  defaultSets  Int        @default(3)
-  defaultReps  Int        @default(10)
-  order        Int        @default(0)
+
+  sets  Int     @default(3)
+  reps  Int     @default(10)
+  order Int     @default(0)
+  notes String? // Trainer notes
 }
 
 model AssignedTemplate {
@@ -86,39 +137,126 @@ model AssignedTemplate {
   user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   templateId String
   template   WorkoutTemplate @relation(fields: [templateId], references: [id])
+  isActive   Boolean         @default(true)
   assignedAt DateTime        @default(now())
-  isActive   Boolean         @default(true) // Helper to find current one
 }
 
 model WorkoutSession {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  date       DateTime @default(now())
-  notes      String?
-  templateId String?  // Optional link to which template this was based on (snapshot)
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date     DateTime @default(now())
+  duration Int? // minutes
+  rating   Int? // 1-5
+  notes    String?
 
-  sets       WorkoutSet[]
+  sets WorkoutSet[]
 }
 
 model WorkoutSet {
   id        String         @id @default(cuid())
   sessionId String
   session   WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  
+
   exerciseId String
   exercise   Exercise @relation(fields: [exerciseId], references: [id])
 
   setNumber Int
-  weight    Float
+  weight    Float?
   reps      Int
-  rpe       Float?
+  completed Boolean @default(true)
 }
 
-model BodyweightEntry {
+// --- NUTRITION MODELS ---
+
+model DailyDiet {
   id     String   @id @default(cuid())
   userId String
   user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   date   DateTime @default(now())
-  weight Float
+
+  meals       Meal[]
+  waterIntake Int    @default(0) // ml
+
+  totalCalories Int @default(0)
+  protein       Int @default(0)
+  carbs         Int @default(0)
+  fats          Int @default(0)
+}
+
+model Meal {
+  id          String     @id @default(cuid())
+  dailyDietId String?
+  dailyDiet   DailyDiet? @relation(fields: [dailyDietId], references: [id], onDelete: Cascade)
+
+  name     String
+  calories Int
+  protein  Int
+  carbs    Int
+  fats     Int
+
+  time        String? // "Breakfast", "Lunch", "Snack"
+  isCompleted Boolean @default(false)
+}
+
+// --- PROGRESS MODELS ---
+
+model ProgressEntry {
+  id     String   @id @default(cuid())
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date   DateTime @default(now())
+
+  weight  Float?
+  bodyFat Float?
+  chest   Float?
+  waist   Float?
+  arms    Float?
+  thighs  Float?
+
+  photos String? // JSON array of URLs
+}
+
+// --- PROTOTYPE FEATURES ---
+
+model Attendance {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gymId       String
+  gym         Gym      @relation(fields: [gymId], references: [id])
+  date        DateTime @default(now()) // Stored as ISO date part mostly
+  checkInTime DateTime @default(now())
+
+  @@unique([userId, date]) // Prevent duplicate check-in same day (needs date truncation logic in app)
+}
+
+model Membership {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gymId  String
+  gym    Gym    @relation(fields: [gymId], references: [id])
+
+  planName  String
+  price     Float
+  startDate DateTime @default(now())
+  endDate   DateTime
+  status    String   @default("active") // active, expired, pending
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Billing {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gymId  String
+  gym    Gym    @relation(fields: [gymId], references: [id])
+
+  amount Float
+  method String // cash, upi, card
+  note   String?
+  date   DateTime @default(now())
 }

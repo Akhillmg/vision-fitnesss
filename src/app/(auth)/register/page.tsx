@@ -1,96 +1,90 @@
 "use client"
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Loader2 } from 'lucide-react'
 
-export default function RegisterPage() {
-    const [name, setName] = useState('')
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState('')
+import * as React from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { registerUser } from "@/actions/register"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense } from "react"
+
+function RegisterForm() {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const gymCodeParam = searchParams.get('gymCode')
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const [loading, setLoading] = React.useState(false)
+    const [error, setError] = React.useState<string | null>(null)
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         setLoading(true)
-        setError('')
+        setError(null)
 
-        try {
-            const res = await fetch('/api/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password })
-            })
+        const formData = new FormData(e.currentTarget)
+        const result = await registerUser(formData)
 
-            const data = await res.json()
-
-            if (!res.ok) {
-                setError(data.message || 'Registration failed')
-                setLoading(false)
-                return
-            }
-
-            router.push('/login?registered=true')
-        } catch (err) {
-            setError('Something went wrong')
+        if (result.error) {
+            setError(result.error)
             setLoading(false)
+        } else {
+            router.push("/login")
         }
     }
 
     return (
-        <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 p-8 rounded-xl space-y-6 shadow-2xl">
-            <h2 className="text-xl font-medium text-white">Create an account</h2>
-            {error && <div className="p-3 bg-red-500/10 text-red-500 text-sm rounded-lg">{error}</div>}
+        <Card className="w-full max-w-md border-zinc-800 bg-zinc-950">
+            <CardHeader>
+                <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
+                <CardDescription>Join your gym community today</CardDescription>
+            </CardHeader>
+            <form onSubmit={handleSubmit}>
+                <CardContent className="space-y-4">
+                    {error && (
+                        <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm p-2 rounded">
+                            {error}
+                        </div>
+                    )}
+                    <div className="space-y-2">
+                        <label className="text-sm text-zinc-400">Full Name</label>
+                        <Input name="name" placeholder="John Doe" required />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm text-zinc-400">Email</label>
+                        <Input name="email" type="email" placeholder="john@example.com" required />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm text-zinc-400">Password</label>
+                        <Input name="password" type="password" required />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm text-zinc-400">Gym Code</label>
+                        <Input
+                            name="gymCode"
+                            defaultValue={gymCodeParam || ""}
+                            readOnly={!!gymCodeParam}
+                            className={gymCodeParam ? "bg-zinc-800 text-zinc-400" : ""}
+                            placeholder="GYM-XXXX"
+                            required
+                        />
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <Button className="w-full bg-red-600 hover:bg-red-700" disabled={loading}>
+                        {loading ? "CREATING..." : "JOIN NOW"}
+                    </Button>
+                </CardFooter>
+            </form>
+        </Card>
+    )
+}
 
-            <div className="space-y-2">
-                <label className="text-sm text-zinc-400">Name</label>
-                <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-black border border-zinc-800 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                    placeholder="John Doe"
-                    required
-                />
-            </div>
-
-            <div className="space-y-2">
-                <label className="text-sm text-zinc-400">Email</label>
-                <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-black border border-zinc-800 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                    placeholder="you@example.com"
-                    required
-                />
-            </div>
-
-            <div className="space-y-2">
-                <label className="text-sm text-zinc-400">Password</label>
-                <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-black border border-zinc-800 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                    placeholder="••••••••"
-                    required
-                />
-            </div>
-
-            <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-3 rounded-lg transition-colors flex items-center justify-center"
-            >
-                {loading ? <Loader2 className="animate-spin text-black" /> : 'Create Account'}
-            </button>
-
-            <div className="text-center text-sm text-zinc-500">
-                Already have an account? <Link href="/login" className="text-emerald-500 hover:underline">Log in</Link>
-            </div>
-        </form>
+export default function RegisterPage() {
+    return (
+        <div className="flex h-screen w-full items-center justify-center bg-black p-4">
+            <Suspense fallback={<div className="text-white">Loading form...</div>}>
+                <RegisterForm />
+            </Suspense>
+        </div>
     )
 }

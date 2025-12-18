@@ -1,26 +1,45 @@
 @import "tailwindcss";
 
+@theme {
+  --color-primary: #C1121F;
+  --color-primary-foreground: #FFFFFF;
+  
+  --color-background: #0B0B0B;
+  --color-foreground: #FFFFFF;
+  
+  --color-card: #121212;
+  --color-card-foreground: #FFFFFF;
+  
+  --color-muted: #1E1E1E;
+  --color-muted-foreground: #A1A1AA;
+  
+  /* Gym Vibe Colors */
+  --color-gym-black: #0B0B0B;
+  --color-gym-red: #C1121F;
+  --color-gym-gray: #1E1E1E;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: var(--color-background);
+  --foreground: var(--color-foreground);
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Utilities for Gym Vibe */
+@utility text-premium {
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+@utility card-premium {
+  background-color: var(--color-card);
+  border: 1px solid #27272A;
+  border-radius: 0.75rem;
 }

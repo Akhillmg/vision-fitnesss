@@ -1,82 +1,89 @@
 "use client"
-import { useState } from 'react'
-import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Loader2 } from 'lucide-react'
+
+import * as React from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { signIn } from "next-auth/react"
+import { useRouter } from "next/navigation"
 
 export default function LoginPage() {
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState('')
     const router = useRouter()
+    const [loading, setLoading] = React.useState(false) // Assuming React is available
+    const [email, setEmail] = React.useState("")
+    const [password, setPassword] = React.useState("")
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
-        setError('')
 
-        try {
-            const res = await signIn('credentials', {
-                email,
-                password,
-                redirect: false
-            })
+        // Attempt standard login
+        const res = await signIn("credentials", {
+            email,
+            password,
+            redirect: false,
+        })
 
-            if (res?.error) {
-                setError('Invalid email or password')
-                setLoading(false)
-            } else {
-                router.push('/dashboard')
-                router.refresh()
-            }
-        } catch (err) {
-            setError('Something went wrong')
-            setLoading(false)
+        if (res?.ok) {
+            // Redirect based on role or just to root (middleware handles split)
+            router.push("/")
+        } else {
+            alert("Invalid credentials") // Placeholder for toast
         }
+        setLoading(false)
     }
 
     return (
-        <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 p-8 rounded-xl space-y-6 shadow-2xl">
-            <h2 className="text-xl font-medium text-white">Log in to your account</h2>
-            {error && <div className="p-3 bg-red-500/10 text-red-500 text-sm rounded-lg">{error}</div>}
-
-            <div className="space-y-2">
-                <label className="text-sm text-zinc-400">Email</label>
-                <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-black border border-zinc-800 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                    placeholder="you@example.com"
-                    required
-                />
-            </div>
-
-            <div className="space-y-2">
-                <label className="text-sm text-zinc-400">Password</label>
-                <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-black border border-zinc-800 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                    placeholder="••••••••"
-                    required
-                />
-            </div>
-
-            <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-3 rounded-lg transition-colors flex items-center justify-center"
-            >
-                {loading ? <Loader2 className="animate-spin text-black" /> : 'Log In'}
-            </button>
-
-            <div className="text-center text-sm text-zinc-500">
-                Don't have an account? <Link href="/register" className="text-emerald-500 hover:underline">Sign up</Link>
-            </div>
-        </form>
+        <div className="flex h-screen w-full items-center justify-center bg-black bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-900 to-black p-4">
+            <Card className="w-full max-w-md border-zinc-800 bg-zinc-950/50 backdrop-blur-xl">
+                <CardHeader className="space-y-1 text-center">
+                    <CardTitle className="text-3xl font-bold tracking-tighter text-white">
+                        <span className="text-[var(--color-primary)]">VISION</span> FITNESS
+                    </CardTitle>
+                    <CardDescription className="text-zinc-400">
+                        Enter your credentials to access the gym portal
+                    </CardDescription>
+                </CardHeader>
+                <form onSubmit={handleLogin}>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Input
+                                type="email"
+                                placeholder="Email"
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="border-zinc-800 bg-zinc-900/50 text-white placeholder:text-zinc-500 focus-visible:ring-red-600"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Input
+                                type="password"
+                                placeholder="Password"
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="border-zinc-800 bg-zinc-900/50 text-white placeholder:text-zinc-500 focus-visible:ring-red-600"
+                            />
+                        </div>
+                        <div className="text-right">
+                            <a href="#" className="text-xs text-zinc-500 hover:text-red-500">Forgot password?</a>
+                        </div>
+                    </CardContent>
+                    <CardFooter className="flex flex-col gap-4">
+                        <Button
+                            type="submit"
+                            className="w-full bg-[var(--color-primary)] hover:bg-red-700 font-bold uppercase tracking-wide text-white"
+                            disabled={loading}
+                        >
+                            {loading ? "AUTHENTICATING..." : "ENTER GYM"}
+                        </Button>
+                        <div className="text-center text-xs text-zinc-500">
+                            Don't have an account? <span className="text-white hover:underline cursor-pointer" onClick={() => router.push('/gym-check')}>Join Now</span>
+                        </div>
+                    </CardFooter>
+                </form>
+            </Card>
+        </div>
     )
 }

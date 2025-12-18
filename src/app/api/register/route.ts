@@ -4,10 +4,16 @@ import bcrypt from 'bcryptjs';
 
 export async function POST(req: Request) {
     try {
-        const { name, email, password } = await req.json();
+        const { name, email, password, gymCode } = await req.json();
 
-        if (!email || !password || !name) {
+        if (!email || !password || !name || !gymCode) {
             return NextResponse.json({ message: 'Missing fields' }, { status: 400 });
+        }
+
+        const gym = await prisma.gym.findUnique({ where: { code: gymCode } })
+
+        if (!gym) {
+            return NextResponse.json({ message: 'Invalid Gym Code' }, { status: 400 });
         }
 
         const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -22,6 +28,7 @@ export async function POST(req: Request) {
                 name,
                 email,
                 password: hashedPassword,
+                gymId: gym.id,
                 role: "MEMBER"
             }
         });

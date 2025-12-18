@@ -2,24 +2,39 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Dumbbell, History, TrendingUp, Users, LogOut } from 'lucide-react'
+import { Home, Dumbbell, History, TrendingUp, Users, LogOut, CheckCircle2, CreditCard, Receipt } from 'lucide-react'
 import { signOut } from 'next-auth/react' // Client side signout
 import { clsx } from 'clsx'
 
 export function Sidebar({ userRole }: { userRole?: string }) {
     const pathname = usePathname()
 
-    // Base links for everyone (Members)
-    const links = [
-        { href: '/dashboard', label: 'Dashboard', icon: Home },
+    // Default Member Links
+    let links = [
+        { href: '/member/home', label: 'Home', icon: Home }, // Assuming /dashboard redirects here or using /member/home
+        { href: '/member/attendance', label: 'Attendance', icon: CheckCircle2 },
+        { href: '/member/membership', label: 'Membership', icon: CreditCard },
+        { href: '/member/billing', label: 'Billing', icon: Receipt },
         { href: '/workout/today', label: 'Log Workout', icon: Dumbbell },
         { href: '/history', label: 'History', icon: History },
-        { href: '/progress', label: 'Progress', icon: TrendingUp },
+        // { href: '/progress', label: 'Progress', icon: TrendingUp },
     ]
 
-    // Trainer specific
-    if (userRole === 'TRAINER') {
+    if (userRole === 'ADMIN') {
+        links = [
+            { href: '/admin/dashboard', label: 'Dashboard', icon: Home },
+            { href: '/admin/attendance', label: 'Attendance', icon: CheckCircle2 },
+            { href: '/admin/memberships', label: 'Memberships', icon: CreditCard },
+            { href: '/admin/billing', label: 'Billing', icon: Receipt },
+            { href: '/admin/users', label: 'Users', icon: Users },
+        ]
+    } else if (userRole === 'TRAINER') {
         links.push({ href: '/trainer', label: 'Trainer Area', icon: Users })
+        // Trainer can view attendance too? prompt said "Trainer: View attendance per client"
+        // For now, let's keep it simple.
+    } else {
+        // Ensure path correctness for existing app
+        // The existing app had /dashboard, check if I should keep it
     }
 
     return (

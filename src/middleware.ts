@@ -3,28 +3,46 @@ import { NextResponse } from "next/server"
 
 export default auth((req) => {
     const isLoggedIn = !!req.auth
-    const { pathname } = req.nextUrl
-    const user = req.auth?.user as any
+    const { nextUrl } = req
+    const role = req.auth?.user?.role
 
-    // Start with Trainer protection (stricter)
-    if (pathname.startsWith('/trainer')) {
-        if (!isLoggedIn) return NextResponse.redirect(new URL('/login', req.nextUrl))
-        if (user?.role !== 'TRAINER') {
-            return NextResponse.redirect(new URL('/dashboard', req.nextUrl))
+    const isApiAuthRoute = nextUrl.pathname.startsWith("/api/auth");
+    const isAuthRoute = nextUrl.pathname.startsWith("/login") || nextUrl.pathname.startsWith("/register") || nextUrl.pathname.startsWith("/gym-check");
+    const isPublicRoute = nextUrl.pathname === "/" || nextUrl.pathname.startsWith("/public");
+
+    if (isApiAuthRoute) {
+        return null;
+    }
+
+    if (isAuthRoute) {
+        if (isLoggedIn) {
+            if (role === 'ADMIN') return NextResponse.redirect(new URL("/admin/dashboard", nextUrl));
+            if (role === 'TRAINER') return NextResponse.redirect(new URL("/trainer/dashboard", nextUrl));
+            return NextResponse.redirect(new URL("/member/home", nextUrl));
         }
+        return null;
     }
 
-    // Member routes
-    const protectedRoots = ['/dashboard', '/workout', '/history', '/progress']
-    const isProtected = protectedRoots.some(r => pathname.startsWith(r))
-
-    if (isProtected) {
-        if (!isLoggedIn) return NextResponse.redirect(new URL('/login', req.nextUrl))
+    if (!isLoggedIn && !isPublicRoute) {
+        let callbackUrl = nextUrl.pathname;
+        if (nextUrl.search) {
+            callbackUrl += nextUrl.search;
+        }
+        return NextResponse.redirect(new URL(`/gym-check`, nextUrl));
     }
 
-    return NextResponse.next()
+    // Role Protection
+    if (role === 'MEMBER' && (nextUrl.pathname.startsWith('/admin') || nextUrl.pathname.startsWith('/trainer'))) {
+        return NextResponse.redirect(new URL("/member/home", nextUrl));
+    }
+    if (role === 'TRAINER' && (nextUrl.pathname.startsWith('/admin') || nextUrl.pathname.startsWith('/member'))) {
+        // Trainer can technically view Member profiles but not "member home". for now strict redirect.
+        return NextResponse.redirect(new URL("/trainer/dashboard", nextUrl));
+    }
+
+    return null;
 })
 
 export const config = {
-    matcher: ["/dashboard/:path*", "/trainer/:path*", "/workout/:path*", "/history/:path*", "/progress/:path*"],
+    matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
 }
