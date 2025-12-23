@@ -1,5 +1,4 @@
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
+import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,37 +8,38 @@ import { redirect } from "next/navigation"
 import { User, Check, Star } from "lucide-react"
 
 export default async function TrainersPage() {
-    const session = await auth()
-    if (!session?.user?.email) return redirect("/")
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        select: { id: true, gymId: true, assignedTrainerId: true }
-    })
+    if (!user) return redirect("/")
 
-    if (!user || !user.gymId) return redirect("/")
+    const { data: publicUser } = await supabase
+        .from("User")
+        .select("id, gymId, assignedTrainerId")
+        .eq("id", user.id)
+        .single()
 
-    const trainers = await prisma.user.findMany({
-        where: {
-            gymId: user.gymId,
-            role: "TRAINER"
-        },
-        include: {
-            trainerProfile: true,
-            receivedReviews: {
-                select: { rating: true }
-            }
-        }
-    })
+    if (!publicUser?.gymId) return redirect("/")
+
+    const { data: trainers } = await supabase
+        .from("User")
+        .select(`
+            *,
+            trainerProfile:TrainerProfile(*),
+            receivedReviews:TrainerReview(rating)
+        `)
+        .eq("gymId", publicUser.gymId)
+        .eq("role", "TRAINER")
 
     return (
         <div className="space-y-6 p-4 pt-8 bg-black min-h-screen text-white">
             <h1 className="text-2xl font-bold uppercase tracking-tighter text-emerald-500">Find a Coach</h1>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {trainers.map(trainer => {
-                    const avgRating = trainer.receivedReviews.reduce((acc, r) => acc + r.rating, 0) / (trainer.receivedReviews.length || 1)
-                    const isAssigned = user.assignedTrainerId === trainer.id
+                {trainers?.map((trainer: any) => {
+                    const reviews = trainer.receivedReviews || []
+                    const avgRating = reviews.reduce((acc: number, r: any) => acc + r.rating, 0) / (reviews.length || 1)
+                    const isAssigned = publicUser.assignedTrainerId === trainer.id
 
                     return (
                         <Card key={trainer.id} className={`bg-zinc-900 border-zinc-800 ${isAssigned ? 'border-emerald-500 box-content' : ''}`}>
@@ -63,7 +63,7 @@ export default async function TrainersPage() {
                                 <div className="flex items-center gap-1 text-yellow-500 text-sm mt-2">
                                     <Star size={14} fill="currentColor" />
                                     <span className="text-white font-bold">{avgRating.toFixed(1)}</span>
-                                    <span className="text-zinc-500">({trainer.receivedReviews.length} reviews)</span>
+                                    <span className="text-zinc-500">({reviews.length} reviews)</span>
                                 </div>
                             </CardHeader>
                             <CardContent className="text-sm text-zinc-400 min-h-[60px]">

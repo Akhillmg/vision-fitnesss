@@ -1,172 +1,123 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { selectRole } from "@/actions/role-selection"
-import { Dumbbell, Shield, User, Users } from "lucide-react"
+import { useActionState, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { assignRoleAction } from "@/lib/auth-actions";
+import { Check, Shield, Dumbbell, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const initialState = {
+    error: "",
+};
 
 export default function RoleSelectionPage() {
-    const router = useRouter()
-    const [loading, setLoading] = useState<string | null>(null)
-    const [authRole, setAuthRole] = useState<"ADMIN" | "TRAINER" | null>(null)
-    const [code, setCode] = useState("")
-    const [error, setError] = useState<string | null>(null)
-
-    const handleSelect = async (role: "ADMIN" | "TRAINER" | "MEMBER", accessCode?: string) => {
-        setLoading(role)
-        setError(null)
-
-        try {
-            const result = await selectRole(role, accessCode)
-            if (result.error) {
-                setError(result.error)
-                setLoading(null)
-            } else if (result.redirectPath) {
-                // Force a hard navigation to ensure middleware is re-run and session updated if needed
-                window.location.href = result.redirectPath
-            } else {
-                router.refresh()
-                // Force hard reload or router refresh significantly to clear stale middleware cache
-                // But router.refresh() is soft. window.location.href forces full server trip.
-                window.location.href = "/"
-            }
-        } catch (e) {
-            console.error(e)
-            setError("Something went wrong")
-            setLoading(null)
-        }
-    }
-
-    if (authRole) {
-        return (
-            <div className="min-h-screen bg-black flex items-center justify-center p-4">
-                <Card className="w-full max-w-md border-zinc-800 bg-zinc-950 text-white">
-                    <CardHeader>
-                        <CardTitle>{authRole === "ADMIN" ? "Admin Access" : "Trainer Access"}</CardTitle>
-                        <CardDescription>Enter your access code to verify your role.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {error && <div className="text-red-500 text-sm bg-red-500/10 p-2 rounded">{error}</div>}
-                        <div className="space-y-2">
-                            <label className="text-sm text-zinc-400">{authRole === "ADMIN" ? "Admin Password" : "Access Code"}</label>
-                            <Input
-                                type="password"
-                                value={code}
-                                onChange={(e) => setCode(e.target.value)}
-                                placeholder={authRole === "ADMIN" ? "Enter admin password..." : "Enter access code..."}
-                                className="bg-zinc-900 border-zinc-700"
-                            />
-                        </div>
-                    </CardContent>
-                    <CardFooter className="flex gap-2">
-                        <Button variant="ghost" className="flex-1" onClick={() => { setAuthRole(null); setError(null); setCode(""); }}>
-                            Cancel
-                        </Button>
-                        <Button
-                            className="flex-1 bg-red-600 hover:bg-red-700"
-                            onClick={() => handleSelect(authRole, code)}
-                            disabled={loading === authRole}
-                        >
-                            {loading === authRole ? "Verifying..." : "Verify"}
-                        </Button>
-                    </CardFooter>
-                </Card>
-            </div>
-        )
-    }
+    const [selectedRole, setSelectedRole] = useState<"MEMBER" | "TRAINER" | "ADMIN" | null>(null);
+    const [state, action, pending] = useActionState(assignRoleAction, initialState);
 
     return (
-        <div className="min-h-screen bg-black text-white p-8 flex flex-col items-center justify-center">
-            <div className="max-w-4xl w-full space-y-8">
-                <div className="text-center space-y-4">
-                    <h1 className="text-4xl font-bold tracking-tight">Choose Your Role</h1>
-                    <p className="text-zinc-400 text-lg">Select how you will use Vision Fitness</p>
-                </div>
+        <div className="flex h-screen w-full items-center justify-center bg-black p-4">
+            <Card className="w-full max-w-2xl border-zinc-800 bg-zinc-950">
+                <CardHeader className="text-center">
+                    <CardTitle className="text-3xl font-bold text-white">Select Your Role</CardTitle>
+                    <CardDescription>Choose how you want to use Vision Fitness</CardDescription>
+                </CardHeader>
 
-                <div className="grid md:grid-cols-3 gap-6">
-                    {/* MEMBER CARD */}
-                    <Card className="border-zinc-800 bg-zinc-950/50 hover:bg-zinc-900 transition-colors cursor-pointer group relative overflow-hidden">
-                        <CardHeader>
-                            <div className="h-12 w-12 rounded-lg bg-zinc-800 flex items-center justify-center mb-4 text-white group-hover:bg-red-600 transition-colors">
-                                <User size={24} />
-                            </div>
-                            <CardTitle className="text-white">Member</CardTitle>
-                            <CardDescription>I want to train and track progress</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ul className="text-sm text-zinc-400 space-y-2 list-disc list-inside">
-                                <li>Access workout tracking</li>
-                                <li>View gym schedule</li>
-                                <li>Manage membership</li>
-                            </ul>
-                        </CardContent>
-                        <CardFooter>
-                            <Button
-                                className="w-full bg-zinc-800 hover:bg-zinc-700 group-hover:bg-red-600 group-hover:hover:bg-red-700 text-white border-none"
-                                onClick={() => handleSelect("MEMBER")}
-                                disabled={loading === "MEMBER"}
-                            >
-                                {loading === "MEMBER" ? "Setting up..." : "Join as Member"}
-                            </Button>
-                        </CardFooter>
-                    </Card>
+                <form action={action}>
+                    <input type="hidden" name="role" value={selectedRole || ""} />
 
-                    {/* TRAINER CARD */}
-                    <Card className="border-zinc-800 bg-zinc-950/50 hover:bg-zinc-900 transition-colors cursor-pointer group">
-                        <CardHeader>
-                            <div className="h-12 w-12 rounded-lg bg-zinc-800 flex items-center justify-center mb-4 text-white group-hover:bg-blue-600 transition-colors">
-                                <Users size={24} />
+                    <CardContent className="space-y-6">
+                        {state?.error && (
+                            <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm p-3 rounded text-center">
+                                {state.error}
                             </div>
-                            <CardTitle className="text-white">Trainer</CardTitle>
-                            <CardDescription>I am a certified trainer</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ul className="text-sm text-zinc-400 space-y-2 list-disc list-inside">
-                                <li>Manage clients</li>
-                                <li>Create workout plans</li>
-                                <li>Track client progress</li>
-                            </ul>
-                        </CardContent>
-                        <CardFooter>
-                            <Button
-                                className="w-full bg-zinc-800 hover:bg-zinc-700 group-hover:bg-blue-600 group-hover:hover:bg-blue-700 text-white border-none"
-                                onClick={() => setAuthRole("TRAINER")}
-                            >
-                                Trainer Access
-                            </Button>
-                        </CardFooter>
-                    </Card>
+                        )}
 
-                    {/* ADMIN CARD */}
-                    <Card className="border-zinc-800 bg-zinc-950/50 hover:bg-zinc-900 transition-colors cursor-pointer group">
-                        <CardHeader>
-                            <div className="h-12 w-12 rounded-lg bg-zinc-800 flex items-center justify-center mb-4 text-white group-hover:bg-amber-600 transition-colors">
-                                <Shield size={24} />
-                            </div>
-                            <CardTitle className="text-white">Admin</CardTitle>
-                            <CardDescription>I manage the facility</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ul className="text-sm text-zinc-400 space-y-2 list-disc list-inside">
-                                <li>Full system control</li>
-                                <li>Manage staff & members</li>
-                                <li>Financial reports</li>
-                            </ul>
-                        </CardContent>
-                        <CardFooter>
-                            <Button
-                                className="w-full bg-zinc-800 hover:bg-zinc-700 group-hover:bg-amber-600 group-hover:hover:bg-amber-700 text-white border-none"
-                                onClick={() => setAuthRole("ADMIN")}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {/* MEMBER */}
+                            <div
+                                onClick={() => setSelectedRole("MEMBER")}
+                                className={cn(
+                                    "cursor-pointer rounded-xl border-2 p-4 transition-all hover:bg-zinc-900",
+                                    selectedRole === "MEMBER" ? "border-red-600 bg-zinc-900" : "border-zinc-800 bg-zinc-950"
+                                )}
                             >
-                                Admin Access
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                </div>
-            </div>
+                                <div className="flex flex-col items-center gap-3 text-center">
+                                    <div className="p-3 bg-zinc-900 rounded-full text-white">
+                                        <Users size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-white">Member</h3>
+                                        <p className="text-xs text-zinc-400 mt-1">Track workouts & attendance</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* TRAINER */}
+                            <div
+                                onClick={() => setSelectedRole("TRAINER")}
+                                className={cn(
+                                    "cursor-pointer rounded-xl border-2 p-4 transition-all hover:bg-zinc-900",
+                                    selectedRole === "TRAINER" ? "border-red-600 bg-zinc-900" : "border-zinc-800 bg-zinc-950"
+                                )}
+                            >
+                                <div className="flex flex-col items-center gap-3 text-center">
+                                    <div className="p-3 bg-zinc-900 rounded-full text-white">
+                                        <Dumbbell size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-white">Trainer</h3>
+                                        <p className="text-xs text-zinc-400 mt-1">Manage clients & plans</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ADMIN */}
+                            <div
+                                onClick={() => setSelectedRole("ADMIN")}
+                                className={cn(
+                                    "cursor-pointer rounded-xl border-2 p-4 transition-all hover:bg-zinc-900",
+                                    selectedRole === "ADMIN" ? "border-red-600 bg-zinc-900" : "border-zinc-800 bg-zinc-950"
+                                )}
+                            >
+                                <div className="flex flex-col items-center gap-3 text-center">
+                                    <div className="p-3 bg-zinc-900 rounded-full text-white">
+                                        <Shield size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-white">Admin</h3>
+                                        <p className="text-xs text-zinc-400 mt-1">Manage gym & payments</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {selectedRole === "ADMIN" && (
+                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                <label className="text-sm text-zinc-400">Admin Secret Code</label>
+                                <Input name="code" type="password" placeholder="Enter Admin Code provided by system owner" className="bg-zinc-900 border-zinc-700" />
+                            </div>
+                        )}
+
+                        {selectedRole === "TRAINER" && (
+                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                <label className="text-sm text-zinc-400">Trainer Access Code</label>
+                                <Input name="code" type="password" placeholder="Enter Trainer Code provided by Admin" className="bg-zinc-900 border-zinc-700" />
+                            </div>
+                        )}
+
+                    </CardContent>
+                    <CardFooter>
+                        <Button
+                            className="w-full bg-red-600 hover:bg-red-700"
+                            disabled={!selectedRole || pending}
+                        >
+                            {pending ? "ASSIGNING ROLE..." : "CONFIRM SELECTION"}
+                        </Button>
+                    </CardFooter>
+                </form>
+            </Card>
         </div>
-    )
+    );
 }

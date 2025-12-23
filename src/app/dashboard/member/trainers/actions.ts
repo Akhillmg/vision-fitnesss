@@ -1,7 +1,6 @@
 "use server"
 
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
+import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
@@ -12,11 +11,10 @@ const ReviewSchema = z.object({
 })
 
 export async function submitReview(formData: FormData) {
-    const session = await auth()
-    if (!session?.user?.email) return { error: "Unauthorized" }
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } })
-    if (!user) return { error: "User not found" }
+    if (!user) return { error: "Unauthorized" }
 
     const rawData = Object.fromEntries(formData.entries())
     const validated = ReviewSchema.safeParse(rawData)
@@ -25,17 +23,16 @@ export async function submitReview(formData: FormData) {
 
     const { trainerId, rating, comment } = validated.data
 
-    try {
-        await prisma.trainerReview.create({
-            data: {
-                memberId: user.id,
-                trainerId,
-                rating,
-                comment
-            }
-        })
-    } catch (e) {
-        console.error(e)
+    const { error } = await supabase.from("TrainerReview").insert({
+        memberId: user.id,
+        trainerId,
+        rating,
+        comment,
+        createdAt: new Date().toISOString()
+    })
+
+    if (error) {
+        console.error(error)
         return { error: "Failed to submit review" }
     }
 
@@ -44,16 +41,17 @@ export async function submitReview(formData: FormData) {
 }
 
 export async function assignTrainer(trainerId: string) {
-    const session = await auth()
-    if (!session?.user?.email) return { error: "Unauthorized" }
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } })
-    if (!user) return { error: "User not found" }
+    if (!user) return { error: "Unauthorized" }
 
-    await prisma.user.update({
-        where: { id: user.id },
-        data: { assignedTrainerId: trainerId }
-    })
+    const { error } = await supabase
+        .from("User")
+        .update({ assignedTrainerId: trainerId })
+        .eq("id", user.id)
+
+    if (error) return { error: "Failed to assign trainer" }
 
     revalidatePath("/member/trainers")
     revalidatePath("/trainer/dashboard")

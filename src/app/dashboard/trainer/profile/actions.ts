@@ -1,37 +1,36 @@
 "use server"
 
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
+import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
 
 export async function updateProfile(formData: FormData) {
-    const session = await auth()
-    if (!session?.user?.email) throw new Error("Unauthorized")
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        select: { id: true, gymId: true }
-    })
+    if (!user) throw new Error("Unauthorized")
 
-    if (!user || !user.gymId) throw new Error("Unauthorized")
+    const { data: publicUser } = await supabase
+        .from("User")
+        .select("id, gymId")
+        .eq("id", user.id)
+        .single()
+
+    if (!publicUser?.gymId) throw new Error("Unauthorized")
 
     const bio = formData.get("bio") as string
     const specialties = formData.get("specialties") as string
 
-    await prisma.trainerProfile.upsert({
-        where: { userId: user.id },
-        update: {
-            bio,
-            specialties
-        },
-        create: {
+    // Upsert Trainer Profile
+    const { error } = await supabase
+        .from("TrainerProfile")
+        .upsert({
             userId: user.id,
-            gymId: user.gymId,
+            gymId: publicUser.gymId,
             bio,
             specialties
-        }
-    })
+        }, { onConflict: 'userId' })
+
+    if (error) throw new Error(error.message)
 
     revalidatePath("/trainer/profile")
 }

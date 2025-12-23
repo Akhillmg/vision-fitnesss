@@ -1,13 +1,24 @@
-
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
+import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
 export async function POST(req: Request) {
     try {
-        const session = await auth()
-        if (session?.user?.role !== "ADMIN") {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (!user) {
             return new NextResponse("Unauthorized", { status: 401 })
+        }
+
+        // Verify Admin Role
+        const { data: publicUser } = await supabase
+            .from("User")
+            .select("role, gymId")
+            .eq("id", user.id)
+            .single()
+
+        if (!publicUser || publicUser.role !== "ADMIN") {
+            return new NextResponse("Unauthorized - Admin only", { status: 403 })
         }
 
         const body = await req.json()
@@ -17,16 +28,20 @@ export async function POST(req: Request) {
             return new NextResponse("Missing fields", { status: 400 })
         }
 
-        const billing = await prisma.billing.create({
-            data: {
+        const { data: billing, error } = await supabase
+            .from("Billing")
+            .insert({
                 userId,
-                gymId: session.user.gymId,
+                gymId: publicUser.gymId,
                 amount: parseFloat(amount),
                 method,
                 note,
-                date: new Date()
-            }
-        })
+                date: new Date().toISOString()
+            })
+            .select()
+            .single()
+
+        if (error) throw error
 
         return NextResponse.json(billing)
     } catch (error) {
@@ -37,24 +52,33 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
     try {
-        const session = await auth()
-        if (!session?.user?.id) {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (!user) {
             return new NextResponse("Unauthorized", { status: 401 })
         }
 
-        // Members see their own, Admin sees gym's (if queried differently, but this is for member view mainly)
-        // For simpler prototype, let's just make this endpoint for the specific user requesting
+        const { data: publicUser } = await supabase
+            .from("User")
+            .select("gymId")
+            .eq("id", user.id)
+            .single()
 
-        const history = await prisma.billing.findMany({
-            where: {
-                userId: session.user.id,
-                gymId: session.user.gymId
-            },
-            orderBy: { date: 'desc' }
-        })
+        if (!publicUser) return new NextResponse("User not found", { status: 404 })
+
+        const { data: history, error } = await supabase
+            .from("Billing")
+            .select("*")
+            .eq("userId", user.id)
+            .eq("gymId", publicUser.gymId)
+            .order("date", { ascending: false })
+
+        if (error) throw error
 
         return NextResponse.json(history)
     } catch (error) {
+        console.error("Fetch billing error:", error)
         return new NextResponse("Internal Error", { status: 500 })
     }
 }

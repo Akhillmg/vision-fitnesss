@@ -1,6 +1,4 @@
-
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
+import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -8,13 +6,19 @@ import { Input } from "@/components/ui/input"
 import { createMembership } from "./actions"
 
 export default async function AdminMembershipsPage() {
-    const session = await auth()
-    if (session?.user?.role !== "ADMIN") return redirect("/")
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    const users = await prisma.user.findMany({
-        where: { gymId: session.user.gymId, role: "MEMBER" },
-        select: { id: true, name: true, email: true }
-    })
+    if (!user) return redirect("/")
+
+    const { data: publicUser } = await supabase.from("User").select("role, gymId").eq("id", user.id).single()
+    if (publicUser?.role !== "ADMIN") return redirect("/")
+
+    const { data: users } = await supabase
+        .from("User")
+        .select("id, name, email")
+        .eq("gymId", publicUser.gymId)
+        .eq("role", "MEMBER")
 
     return (
         <div className="space-y-6 pt-6">
@@ -32,7 +36,7 @@ export default async function AdminMembershipsPage() {
                                 <label className="text-sm font-medium text-zinc-300">Select Member</label>
                                 <select name="userId" required className="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-red-600">
                                     <option value="" disabled selected>Select a member...</option>
-                                    {users.map(user => (
+                                    {users?.map(user => (
                                         <option key={user.id} value={user.id}>
                                             {user.name} ({user.email})
                                         </option>

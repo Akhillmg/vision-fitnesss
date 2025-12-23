@@ -9,8 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@auth/prisma-adapter": "^2.11.1",
-    "@prisma/client": "^5.22.0",
     "@radix-ui/react-slot": "^1.2.4",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.89.0",
@@ -20,8 +18,6 @@
     "dotenv": "^17.2.3",
     "lucide-react": "^0.556.0",
     "next": "^16.0.10",
-    "next-auth": "^5.0.0-beta.30",
-    "prisma": "^5.22.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "recharts": "^3.5.1",

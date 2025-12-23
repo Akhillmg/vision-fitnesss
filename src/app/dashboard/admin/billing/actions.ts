@@ -1,28 +1,30 @@
-
 "use server"
 
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
+import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
 export async function createBillingRecord(formData: FormData) {
-    const session = await auth()
-    if (session?.user?.role !== "ADMIN") return
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    // Role check
+    const { data: publicUser } = await supabase.from("User").select("role, gymId").eq("id", user.id).single()
+    if (publicUser?.role !== "ADMIN") return
 
     const userId = formData.get("userId") as string
     const amount = parseFloat(formData.get("amount") as string)
     const method = formData.get("method") as string
     const note = formData.get("note") as string
 
-    await prisma.billing.create({
-        data: {
-            userId,
-            gymId: session.user.gymId,
-            amount,
-            method,
-            note,
-            date: new Date()
-        }
+    await supabase.from("Billing").insert({
+        userId,
+        gymId: publicUser.gymId,
+        amount,
+        method,
+        note,
+        date: new Date().toISOString()
     })
 
     revalidatePath("/admin/billing")

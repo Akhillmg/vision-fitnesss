@@ -1,5 +1,4 @@
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
+import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,21 +13,29 @@ export default async function DayExercisesPage({
     params: Promise<{ id: string, dayId: string }>
 }) {
     const { id, dayId } = await params
-    const session = await auth()
-    if (!session?.user?.email) return redirect("/")
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    const day = await prisma.workoutDay.findUnique({
-        where: { id: dayId },
-        include: {
-            template: true,
-            exercises: {
-                orderBy: { order: 'asc' },
-                include: { exercise: true }
-            }
-        }
-    })
+    if (!user) return redirect("/")
+
+    const { data: day } = await supabase
+        .from("WorkoutDay")
+        .select(`
+            *,
+            template:WorkoutTemplate(*),
+            exercises:WorkoutDayExercise(
+                *,
+                exercise:Exercise(*)
+            )
+        `)
+        .eq("id", dayId)
+        .single()
 
     if (!day || day.templateId !== id) return redirect("/trainer/programs")
+
+        // Sort manually
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (day as any).exercises.sort((a: any, b: any) => a.order - b.order)
 
     return (
         <div className="space-y-6 p-4 pt-8 bg-black min-h-screen">
@@ -77,8 +84,8 @@ export default async function DayExercisesPage({
 
                 <div className="space-y-4">
                     <h3 className="text-lg font-bold text-white">Current Exercises</h3>
-                    {day.exercises.length > 0 ? (
-                        day.exercises.map((ex, idx) => (
+                    {(day as any).exercises.length > 0 ? (
+                        (day as any).exercises.map((ex: any, idx: number) => (
                             <Card key={ex.id} className="bg-zinc-900 border-zinc-800">
                                 <CardContent className="p-4 flex items-center justify-between">
                                     <div className="flex items-center gap-3">

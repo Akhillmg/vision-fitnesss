@@ -1,5 +1,4 @@
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
+import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, Plus, Dumbbell } from "lucide-react"
@@ -13,32 +12,47 @@ export default async function ProgramDetailsPage({
     params: Promise<{ id: string }>
 }) {
     const { id } = await params
-    const session = await auth()
-    if (!session?.user?.email) return redirect("/")
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        select: { id: true, role: true }
-    })
+    if (!user) return redirect("/")
 
-    if (!user || user.role !== "TRAINER") return redirect("/")
+    const { data: publicUser } = await supabase
+        .from("User")
+        .select("role")
+        .eq("id", user.id)
+        .single()
 
-    const program = await prisma.workoutTemplate.findUnique({
-        where: { id, createdById: user.id },
-        include: {
-            days: {
-                orderBy: { dayIndex: 'asc' },
-                include: {
-                    exercises: {
-                        orderBy: { order: 'asc' },
-                        include: { exercise: true }
-                    }
-                }
-            }
-        }
-    })
+    if (!publicUser || publicUser.role !== "TRAINER") return redirect("/")
+
+    const { data: program } = await supabase
+        .from("WorkoutTemplate")
+        .select(`
+            *,
+            days:WorkoutDay(
+                *,
+                exercises:WorkoutDayExercise(
+                    *,
+                    exercise:Exercise(*)
+                )
+            )
+        `)
+        .eq("id", id)
+        .eq("createdById", user.id)
+        .single()
 
     if (!program) return redirect("/trainer/programs")
+
+    // Supabase returns nested arrays that might need sorting in JS if not using .order() in query
+    // Supabase sort syntax for nested relations is tricky in string format. 
+    // Usually: select('*, days:WorkoutDay(*)') .order('dayIndex', { foreignTable: 'days', ascending: true })
+    // Let's sort manually in JS to be safe and simple.
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    program.days.sort((a: any, b: any) => a.dayIndex - b.dayIndex)
+    program.days.forEach((day: any) => {
+        day.exercises.sort((a: any, b: any) => a.order - b.order)
+    })
 
     const addDayAction = addDay.bind(null, program.id)
 
@@ -61,7 +75,7 @@ export default async function ProgramDetailsPage({
             </div>
 
             <div className="grid gap-6">
-                {program.days.map((day) => (
+                {(program.days as any[]).map((day) => (
                     <Card key={day.id} className="bg-zinc-900 border-zinc-800">
                         <CardHeader className="p-4 flex flex-row items-center justify-between border-b border-zinc-800">
                             <CardTitle className="text-lg font-bold text-white uppercase">{day.title}</CardTitle>
@@ -74,7 +88,7 @@ export default async function ProgramDetailsPage({
                         <CardContent className="p-4">
                             {day.exercises.length > 0 ? (
                                 <div className="space-y-2">
-                                    {day.exercises.map((dayExercise, idx) => (
+                                    {day.exercises.map((dayExercise: any, idx: number) => (
                                         <div key={dayExercise.id} className="flex items-center justify-between bg-zinc-950 p-2 rounded border border-zinc-800">
                                             <div className="flex items-center gap-3">
                                                 <span className="text-xs font-bold text-zinc-600 w-4">{idx + 1}</span>
