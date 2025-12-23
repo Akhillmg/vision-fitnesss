@@ -1,23 +1,22 @@
-
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
+import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { createMembership } from "./actions"
+import { CreateMembershipForm } from "./create-membership-form"
 
 export default async function AdminMembershipsPage() {
-    const session = await auth()
-    if (session?.user?.role !== "ADMIN") return redirect("/")
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    const users = await prisma.user.findMany({
-        where: { gymId: session.user.gymId, role: "MEMBER" },
-        select: { id: true, name: true, email: true }
-    })
+    if (!user) return redirect("/login")
+
+    // Fetch users for the dropdown
+    const { data: users } = await supabase
+        .from('users')
+        .select('id, full_name, email')
+        .eq('role', 'MEMBER')
 
     return (
-        <div className="space-y-6 pt-6">
+        <div className="space-y-6 pt-6 p-8">
             <h1 className="text-3xl font-bold text-white tracking-tight">Manage Memberships</h1>
 
             <div className="grid gap-6 md:grid-cols-2">
@@ -27,44 +26,7 @@ export default async function AdminMembershipsPage() {
                         <CardDescription>Create or renew a plan for a member manually.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <form action={createMembership} className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-zinc-300">Select Member</label>
-                                <select name="userId" required className="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-red-600">
-                                    <option value="" disabled selected>Select a member...</option>
-                                    {users.map(user => (
-                                        <option key={user.id} value={user.id}>
-                                            {user.name} ({user.email})
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-zinc-300">Plan Name</label>
-                                <Input name="planName" placeholder="e.g. Gold Monthly" className="bg-zinc-950 border-zinc-800 text-white" required />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-zinc-300">Price (₹)</label>
-                                    <Input name="price" type="number" placeholder="2000" className="bg-zinc-950 border-zinc-800 text-white" required />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-zinc-300">Duration (Months)</label>
-                                    <select name="durationMonths" required className="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-red-600">
-                                        <option value="1">1 Month</option>
-                                        <option value="3">3 Months</option>
-                                        <option value="6">6 Months</option>
-                                        <option value="12">1 Year</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white font-bold">
-                                Assign Membership
-                            </Button>
-                        </form>
+                        <CreateMembershipForm users={users || []} />
                     </CardContent>
                 </Card>
 
@@ -74,7 +36,7 @@ export default async function AdminMembershipsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-zinc-500 text-sm">
-                            Recently added memberships will verify here.
+                            Recently added memberships will appear here.
                         </div>
                     </CardContent>
                 </Card>
