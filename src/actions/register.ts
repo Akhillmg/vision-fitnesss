@@ -19,14 +19,28 @@ export async function registerUser(formData: FormData) {
         return { error: "Invalid fields" }
     }
 
-    const { name, email, password, gymCode } = validatedFields.data
+    const { name, email, password, gymCode: inputCode } = validatedFields.data
 
-    const gym = await prisma.gym.findUnique({
-        where: { code: gymCode }
+    // Search for a gym that matches ANY of the code columns
+    const gym = await prisma.gym.findFirst({
+        where: {
+            OR: [
+                { code: inputCode },
+                { adminCode: inputCode },
+                { trainerCode: inputCode }
+            ]
+        }
     })
 
     if (!gym) {
-        return { error: "Invalid Gym Code" }
+        return { error: "Invalid Access Code" }
+    }
+
+    let role = "MEMBER"
+    if (gym.adminCode === inputCode) {
+        role = "ADMIN"
+    } else if (gym.trainerCode === inputCode) {
+        role = "TRAINER"
     }
 
     const existingUser = await prisma.user.findUnique({
@@ -39,15 +53,27 @@ export async function registerUser(formData: FormData) {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    await prisma.user.create({
+    const user = await prisma.user.create({
         data: {
             name,
             email,
             password: hashedPassword,
             gymId: gym.id,
-            role: "MEMBER"
+            role: role
         }
     })
+
+    // If Trainer, create empty TrainerProfile
+    if (role === "TRAINER") {
+        await prisma.trainerProfile.create({
+            data: {
+                userId: user.id,
+                gymId: gym.id,
+                bio: "New Trainer",
+                specialties: "General Fitness"
+            }
+        })
+    }
 
     return { success: "Account created! Please login." }
 }

@@ -15,6 +15,7 @@ export function Sidebar({ userRole }: { userRole?: string }) {
         { href: '/member/attendance', label: 'Attendance', icon: CheckCircle2 },
         { href: '/member/membership', label: 'Membership', icon: CreditCard },
         { href: '/member/billing', label: 'Billing', icon: Receipt },
+        { href: '/member/trainers', label: 'Coaches', icon: Users },
         { href: '/workout/today', label: 'Log Workout', icon: Dumbbell },
         { href: '/history', label: 'History', icon: History },
         // { href: '/progress', label: 'Progress', icon: TrendingUp },

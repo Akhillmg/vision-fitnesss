@@ -11,8 +11,10 @@ async function main() {
         where: { code: gymCode },
         update: {},
         create: {
-            name: 'Iron Forge Gym',
-            code: gymCode,
+            name: 'Vision Fitness',
+            code: 'VISION-MEMBER',        // Member Code
+            adminCode: 'VISION-ADMIN',      // Admin Code
+            trainerCode: 'VISION-TRAINER',  // Trainer Code
             address: '123 Muscle Ave, Lift City',
             logo: '/logo.png'
         }

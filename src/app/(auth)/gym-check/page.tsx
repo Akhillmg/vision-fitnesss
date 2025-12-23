@@ -11,18 +11,25 @@ export default function GymCheckPage() {
     const [code, setCode] = React.useState("")
     const [loading, setLoading] = React.useState(false)
 
-    const handleVerify = (e: React.FormEvent) => {
+    const handleVerify = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
-        // Mock verification for now - in real app, call API to check Gym Code
-        setTimeout(() => {
-            if (code.length > 3) {
+
+        try {
+            const { verifyGymCode } = await import("@/actions/verify-gym")
+            const result = await verifyGymCode(code)
+
+            if (result.success) {
                 router.push(`/register?gymCode=${code}`)
             } else {
-                alert("Invalid Gym Code")
+                alert(result.error || "Invalid Gym Code")
             }
+        } catch (err) {
+            console.error(err)
+            alert("Something went wrong")
+        } finally {
             setLoading(false)
-        }, 1000)
+        }
     }
 
     return (
