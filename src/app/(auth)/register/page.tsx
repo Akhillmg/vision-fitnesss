@@ -11,7 +11,7 @@ import { Suspense } from "react"
 function RegisterForm() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const gymCodeParam = searchParams.get('gymCode')
+
 
     const [loading, setLoading] = React.useState(false)
     const [error, setError] = React.useState<string | null>(null)
@@ -22,13 +22,42 @@ function RegisterForm() {
         setError(null)
 
         const formData = new FormData(e.currentTarget)
-        const result = await registerUser(formData)
+        const name = formData.get('name') as string
+        const email = formData.get('email') as string
+        const password = formData.get('password') as string
 
-        if (result.error) {
-            setError(result.error)
+        const { createClient } = await import("@/lib/supabase/client")
+        const supabase = createClient()
+
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    full_name: name,
+                    // role is default empty/MEMBER, handled by Role Selection
+                }
+            }
+        })
+
+        if (error) {
+            setError(error.message)
             setLoading(false)
         } else {
-            router.push("/login")
+            // Supabase might require email confirmation.
+            // If implicit, we can redirect.
+            // Usually for MVP without email confirm:
+            if (data.user) {
+                // Check if session exists (auto-login)
+                if (data.session) {
+                    router.push("/onboarding/role-selection")
+                } else {
+                    setError("Please verify your email address before logging in.")
+                    setLoading(false)
+                }
+            } else {
+                setLoading(false)
+            }
         }
     }
 
@@ -57,17 +86,7 @@ function RegisterForm() {
                         <label className="text-sm text-zinc-400">Password</label>
                         <Input name="password" type="password" required />
                     </div>
-                    <div className="space-y-2">
-                        <label className="text-sm text-zinc-400">Gym Code</label>
-                        <Input
-                            name="gymCode"
-                            defaultValue={gymCodeParam || ""}
-                            readOnly={!!gymCodeParam}
-                            className={gymCodeParam ? "bg-zinc-800 text-zinc-400" : ""}
-                            placeholder="GYM-XXXX"
-                            required
-                        />
-                    </div>
+
                 </CardContent>
                 <CardFooter>
                     <Button className="w-full bg-red-600 hover:bg-red-700" disabled={loading}>

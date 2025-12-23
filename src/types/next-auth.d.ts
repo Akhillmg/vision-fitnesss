@@ -8,12 +8,14 @@ declare module "next-auth" {
             id: string
             role: string
             gymId: string
+            hasProfile: boolean
         } & DefaultSession["user"]
     }
 
     interface User extends DefaultUser {
         role: string
         gymId: string
+        hasProfile: boolean
     }
 }
 
@@ -22,5 +24,6 @@ declare module "next-auth/jwt" {
         id: string
         role: string
         gymId: string
+        hasProfile: boolean
     }
 }

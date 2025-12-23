@@ -17,20 +17,22 @@ export default function LoginPage() {
         e.preventDefault()
         setLoading(true)
 
-        // Attempt standard login
-        const res = await signIn("credentials", {
+        const { createClient } = await import("@/lib/supabase/client")
+        const supabase = createClient()
+
+        const { error } = await supabase.auth.signInWithPassword({
             email,
             password,
-            redirect: false,
         })
 
-        if (res?.ok) {
-            // Redirect based on role or just to root (middleware handles split)
-            router.push("/")
+        if (error) {
+            alert(error.message) // Placeholder for toast
+            setLoading(false)
         } else {
-            alert("Invalid credentials") // Placeholder for toast
+            // Success - Middleware will handle redirection based on role/metadata
+            router.refresh()
+            router.push("/")
         }
-        setLoading(false)
     }
 
     return (
@@ -79,7 +81,7 @@ export default function LoginPage() {
                             {loading ? "AUTHENTICATING..." : "ENTER GYM"}
                         </Button>
                         <div className="text-center text-xs text-zinc-500">
-                            Don't have an account? <span className="text-white hover:underline cursor-pointer" onClick={() => router.push('/gym-check')}>Join Now</span>
+                            Don't have an account? <span className="text-white hover:underline cursor-pointer" onClick={() => router.push('/register')}>Join Now</span>
                         </div>
                     </CardFooter>
                 </form>

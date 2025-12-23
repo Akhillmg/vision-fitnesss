@@ -19,12 +19,13 @@ export const config = {
                 const email = credentials.email as string
                 const password = credentials.password as string
 
-                // 1. Verify Gym Code if provided (for registration logic mainly, but here we assume login)
-                // For login, we just check email/pass, but we must ensure user is active.
-
                 const user = await prisma.user.findUnique({
                     where: { email },
-                    include: { gym: true }
+                    include: {
+                        gym: true,
+                        profile: true,
+                        trainerProfile: true
+                    }
                 });
 
                 if (!user) return null;
@@ -32,12 +33,23 @@ export const config = {
                 const passwordsMatch = await bcrypt.compare(password, user.password);
                 if (!passwordsMatch) return null;
 
+                const hasProfile = user.role === 'TRAINER' ? !!user.trainerProfile : !!user.profile;
+
+                // Admin doesn't need a profile strictly, but if we want role selection for Admin,
+                // we might treat "hasProfile" as "role confirmed" logic.
+                // But Admin role claim happens via code. 
+                // Logic: If Admin, hasProfile is true (bypass profile check).
+                // If Member/Trainer, check actual profile.
+
+                const finalHasProfile = user.role === 'ADMIN' ? true : hasProfile;
+
                 return {
                     id: user.id,
                     name: user.name,
                     email: user.email,
                     role: user.role,
-                    gymId: user.gymId
+                    gymId: user.gymId,
+                    hasProfile: finalHasProfile
                 };
             }
         })
@@ -48,6 +60,7 @@ export const config = {
                 token.role = user.role || "MEMBER"
                 token.id = user.id || ""
                 token.gymId = user.gymId || ""
+                token.hasProfile = user.hasProfile
             }
             if (trigger === "update" && session) {
                 token = { ...token, ...session }
@@ -59,6 +72,7 @@ export const config = {
                 session.user.role = token.role;
                 session.user.id = token.id;
                 session.user.gymId = token.gymId;
+                session.user.hasProfile = token.hasProfile;
             }
             return session
         }
