@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { LogOut } from "lucide-react"
-import { logout } from "@/actions/auth"
+import { signOutAction } from "@/lib/auth-actions"
 import { useTransition } from "react"
 
 export function LogoutButton({ variant = "ghost" }: { variant?: "ghost" | "default" | "outline" | "destructive" }) {
@@ -13,7 +13,7 @@ export function LogoutButton({ variant = "ghost" }: { variant?: "ghost" | "defau
             variant={variant}
             size="sm"
             disabled={isPending}
-            onClick={() => startTransition(() => logout())}
+            onClick={() => startTransition(() => signOutAction())}
             className="gap-2"
         >
             <LogOut size={16} />

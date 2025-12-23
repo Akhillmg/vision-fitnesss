@@ -11,8 +11,8 @@ function getGreeting() {
 }
 
 export default async function MemberHomePage() {
-    const { auth } = await import("@/auth") // Or supabase auth
-    // Ideally use supabase.auth.getUser() but for now let's assume session is valid.
+    // Auth handled by middleware
+    // We can fetch user if needed, but for dashboard stats we probably just need the session user ID inside the action. Ditching fetching here.
 
     const stats = await getMemberStats()
     if (!stats) return null // handle error

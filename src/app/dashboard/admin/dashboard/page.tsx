@@ -1,12 +1,17 @@
-import { auth } from "@/auth"
+import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent } from "@/components/ui/card"
 import { redirect } from "next/navigation"
 
 export default async function AdminDashboardPage() {
-    const session = await auth()
-    if (session?.user?.role !== "ADMIN") {
-        // Middleware usually handles this, but good to be safe
-        // redirect("/login")
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+        redirect("/login")
+    }
+
+    if (user.user_metadata?.role !== "ADMIN") {
+        redirect("/dashboard/member/home")
     }
 
     const { getAdminStats } = await import("@/actions/admin-dashboard")

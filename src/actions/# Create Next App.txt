@@ -1,0 +1,6 @@
+# Create Next App
+
+
+# AntigravityFit
+Track your progress. Crush your goals.
+[Join Now](http://localhost:3000/register)

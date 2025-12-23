@@ -1,12 +1,14 @@
 
-import { auth } from "@/auth"
+import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { CheckInButton } from "@/components/attendance/check-in-button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 
 export default async function MemberAttendancePage() {
-    const session = await auth()
-    if (!session?.user?.id) return redirect("/")
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) return redirect("/login")
 
     return (
         <div className="space-y-6 pt-6">

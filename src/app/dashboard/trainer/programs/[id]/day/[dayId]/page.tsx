@@ -18,24 +18,38 @@ export default async function DayExercisesPage({
 
     if (!user) return redirect("/")
 
-    const { data: day } = await supabase
-        .from("WorkoutDay")
-        .select(`
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client: any = supabase;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const step1: any = client.from("WorkoutDay");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const step2: any = step1.select(`
             *,
             template:WorkoutTemplate(*),
             exercises:WorkoutDayExercise(
                 *,
                 exercise:Exercise(*)
             )
-        `)
-        .eq("id", dayId)
-        .single()
+        `);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const step3: any = step2.eq("id", dayId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const step4: any = step3.limit(1);
 
-    if (!day || day.templateId !== id) return redirect("/trainer/programs")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response: any = await step4;
 
-        // Sort manually
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (day as any).exercises.sort((a: any, b: any) => a.order - b.order)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const day = (response as any).data?.[0];
+
+    if (!day || day.templateId !== id) {
+        // redirect("/trainer/programs")
+        return <div>Program not found</div>
+    }
+
+    // Sort manually
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (day as any).exercises.sort((a: any, b: any) => a.order - b.order)
 
     return (
         <div className="space-y-6 p-4 pt-8 bg-black min-h-screen">

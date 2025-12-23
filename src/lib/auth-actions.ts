@@ -4,31 +4,52 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-export async function signUpAction(prevState: any, formData: FormData) {
+
+export type ActionState = {
+    error?: string;
+    success?: boolean;
+};
+
+export async function signUpAction(prevState: ActionState, formData: FormData): Promise<ActionState> {
+
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const name = formData.get("name") as string;
-    const gymCode = formData.get("gymCode") as string;
+    const role = formData.get("role") as string;
+    const accessCode = formData.get("accessCode") as string;
 
     const supabase = await createClient();
 
+    // Default Gym for prototype (Vision Fitness)
+    const GYM_CODE = "VISION";
+
+    // 1. Fetch Gym
     const { data: gym, error: gymError } = await supabase
         .from("Gym")
-        .select("id")
-        .eq("code", gymCode)
+        .select("id, adminCode, trainerCode")
+        .eq("code", GYM_CODE)
         .single();
 
     if (gymError || !gym) {
-        return { error: "Invalid Gym Code" };
+        return { error: "System Error: Default Gym not configured." };
     }
 
+    // 2. Client-Side Role Validation
+    if (role === "ADMIN") {
+        if (accessCode !== gym.adminCode) return { error: "Invalid Admin Access Code" };
+    } else if (role === "TRAINER") {
+        if (accessCode !== gym.trainerCode) return { error: "Invalid Trainer Access Code" };
+    }
+    // Member needs no code.
+
+    // 3. SignUp with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
             data: {
                 full_name: name,
-                role: null,
+                role: role,
             },
         },
     });
@@ -41,12 +62,13 @@ export async function signUpAction(prevState: any, formData: FormData) {
         return { error: "Registration failed" };
     }
 
+    // 4. Create Public User Record
     const { error: dbError } = await supabase.from("User").insert({
         id: authData.user.id,
         email,
         name,
         password: "supabase-auth-managed",
-        role: null,
+        role: role,
         gymId: gym.id,
         updatedAt: new Date().toISOString(),
     });
@@ -58,6 +80,8 @@ export async function signUpAction(prevState: any, formData: FormData) {
 
     return { success: true };
 }
+
+
 
 export async function signInAction(prevState: any, formData: FormData) {
     const email = formData.get("email") as string;
@@ -85,71 +109,7 @@ export async function signOutAction() {
 }
 
 export async function assignRoleAction(prevState: any, formData: FormData) {
-    const role = formData.get("role") as string;
-    const code = formData.get("code") as string;
-
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-        return { error: "Unauthorized" };
-    }
-
-    // Get user's gymId to verify code
-    const { data: publicUser, error: fetchError } = await supabase
-        .from("User")
-        .select("gymId")
-        .eq("id", user.id)
-        .single();
-
-    if (fetchError || !publicUser) {
-        return { error: "User profile not found" };
-    }
-
-    // Validate Code if Admin or Trainer
-    if (role === "ADMIN" || role === "TRAINER") {
-        if (!code) {
-            return { error: `Please enter the ${role.toLowerCase()} code.` };
-        }
-
-        // Fetch Gym
-        const { data: gym, error: gymError } = await supabase
-            .from("Gym")
-            .select("adminCode, trainerCode")
-            .eq("id", publicUser.gymId)
-            .single();
-
-        if (gymError || !gym) {
-            return { error: "Gym not found" };
-        }
-
-        if (role === "ADMIN" && code !== gym.adminCode) {
-            return { error: "Invalid Admin Code" };
-        }
-        if (role === "TRAINER" && code !== gym.trainerCode) {
-            return { error: "Invalid Trainer Code" };
-        }
-    }
-
-    // Update Public User Role
-    const { error: updateError } = await supabase
-        .from("User")
-        .update({ role: role })
-        .eq("id", user.id);
-
-    if (updateError) {
-        return { error: "Failed to update role in database" };
-    }
-
-    // Update Supabase Auth Metadata (for middleware)
-    const { error: metaError } = await supabase.auth.updateUser({
-        data: { role: role }
-    });
-
-    if (metaError) {
-        return { error: "Failed to update session role" };
-    }
-
-    revalidatePath("/dashboard", "layout");
-    redirect("/dashboard"); // Middleware will route to specific dashboard
+    // This action is likely obsolete if we do selection at signup, 
+    // but keeping it if you want the multi-step flow later.
+    return { error: "Deprecated. Please register with role." };
 }

@@ -1,10 +1,9 @@
-import { auth } from "@/auth"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus, Utensils } from "lucide-react"
 
+// Auth handled by middleware
 export default async function MemberDietPage() {
-    const session = await auth()
 
     const dailyStats = {
         calories: { current: 1240, target: 2400 },

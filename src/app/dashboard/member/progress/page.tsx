@@ -1,10 +1,9 @@
-import { auth } from "@/auth"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { LineChart, Camera, Scale } from "lucide-react"
 
+// Auth handled by middleware
 export default async function MemberProgressPage() {
-    const session = await auth()
 
     return (
         <div className="space-y-6 p-4 pt-8 bg-black min-h-screen">

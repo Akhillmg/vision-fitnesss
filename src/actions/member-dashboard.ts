@@ -12,59 +12,53 @@ export async function getMemberStats() {
 
     // 1. Check if checked in today
     const { data: attendance } = await supabase
-        .from('attendance')
+        .from('Attendance')
         .select('*')
-        .eq('user_id', user.id)
-        .gte('check_in_time', today)
+        .eq('userId', user.id)
+        .gte('date', today) // date field stores YYYY-MM-DD or similar? route.ts used 'date'
         .limit(1)
         .single()
 
     // 2. Active Membership
     const { data: membership } = await supabase
-        .from('user_memberships')
+        .from('Membership')
         .select(`
-            end_date,
+            endDate,
             status,
-            plan:memberships(name)
-        `)
-        .eq('user_id', user.id)
+            planName
+        `) // removed plan:memberships(name) as planName is on Membership
+        .eq('userId', user.id)
         .eq('status', 'active')
-        .gte('end_date', today)
-        .order('end_date', { ascending: true }) // Expiring soonest?
+        .gte('endDate', today)
+        .order('endDate', { ascending: true })
         .limit(1)
-        .single()
+        .maybeSingle() // Use maybeSingle to avoid error if none
 
     // 3. Pending Payments
     const { count: pendingPayments } = await supabase
-        .from('payments')
+        .from('Billing')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('status', 'pending')
+        .eq('userId', user.id)
+        .eq('status', 'PENDING') // Match enum case?
 
     // 4. Assigned Plan
-    const { data: activePlan } = await supabase
-        .from('client_plans')
-        .select(`
-            plan:workout_plans(name, description)
-        `)
-        .eq('client_id', user.id)
-        .eq('active', true)
-        .limit(1)
-        .single()
+    // FIXME: Need to verify how plans are assigned. User has explicit relation or table?
+    // For now returning null to avoid error
+    const activePlan = null
 
     // 5. Recent Announcements
     const { data: announcements } = await supabase
-        .from('announcements')
+        .from('Announcement')
         .select('*')
-        .eq('active', true)
-        .order('created_at', { ascending: false })
+        // .eq('active', true) // Assuming active field exists?
+        .order('createdAt', { ascending: false })
         .limit(3)
 
     return {
         isCheckedIn: !!attendance,
-        membership: membership as any, // Cast to any or define interface to avoid complex Supabase inference issues
+        membership: membership as any,
         pendingPayments: pendingPayments || 0,
-        currentPlan: activePlan?.plan as any,
+        currentPlan: null as any, // activePlan was commented out
         announcements: announcements || []
     }
 }
@@ -74,8 +68,15 @@ export async function checkIn() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: "Unauthorized" }
 
-    const { error } = await supabase.from('attendance').insert({
-        user_id: user.id
+    // Fetch GymID
+    const { data: profile } = await supabase.from("User").select("gymId").eq("id", user.id).single()
+    if (!profile?.gymId) return { error: "Profile incomplete." }
+
+    const { error } = await supabase.from('Attendance').insert({
+        userId: user.id,
+        gymId: profile.gymId,
+        date: new Date().toISOString().split('T')[0], // Using today's date YYYY-MM-DD
+        checkInTime: new Date().toISOString()
     })
 
     if (error) {

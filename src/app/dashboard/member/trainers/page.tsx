@@ -83,7 +83,10 @@ export default async function TrainersPage() {
 
                                 <div className="w-full pt-3 border-t border-zinc-800">
                                     <p className="text-xs text-zinc-500 mb-2 uppercase font-bold">Leave a Review</p>
-                                    <form action={submitReview} className="space-y-2">
+                                    <form action={async (formData) => {
+                                        "use server"
+                                        await submitReview(formData)
+                                    }} className="space-y-2">
                                         <input type="hidden" name="trainerId" value={trainer.id} />
                                         <div className="flex gap-2">
                                             <Input

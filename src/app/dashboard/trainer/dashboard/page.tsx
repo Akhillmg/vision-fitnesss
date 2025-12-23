@@ -1,17 +1,19 @@
-import { auth } from "@/auth"
+import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Users, Dumbbell, ClipboardList } from "lucide-react"
 import { redirect } from "next/navigation"
 
 export default async function TrainerDashboardPage() {
-    const session = await auth()
-    if (!session?.user?.email) return redirect("/")
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) return redirect("/login")
 
     // Auth Check
-    const role = session.user.role // Assuming role is available on session user from middleware/auth
+    const role = user.user_metadata?.role
     if (role !== "TRAINER") {
-        // middleware handles usually
+        return redirect("/dashboard")
     }
 
     const { getTrainerStats } = await import("@/actions/trainer-dashboard")
