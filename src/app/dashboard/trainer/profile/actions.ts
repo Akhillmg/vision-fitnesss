@@ -14,12 +14,12 @@ export async function updateProfile(formData: FormData) {
 
     // Upsert Trainer Profile
     const { error } = await supabase
-        .from("TrainerProfile")
+        .from("trainer_profiles")
         .upsert({
-            userId: user.id,
+            user_id: user.id,
             bio,
             specialties
-        }, { onConflict: 'userId' })
+        }, { onConflict: 'user_id' })
 
     if (error) throw new Error(error.message)
 

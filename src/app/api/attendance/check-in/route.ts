@@ -17,9 +17,9 @@ export async function POST() {
 
         // Check if already checked in
         const { data: existingCheckIn } = await supabase
-            .from("Attendance")
+            .from("attendance")
             .select("id")
-            .eq("userId", user.id)
+            .eq("user_id", user.id)
             .eq("date", todayStr)
             .single()
 
@@ -29,12 +29,11 @@ export async function POST() {
 
         // Create check-in
         const { data: checkIn, error } = await supabase
-            .from("Attendance")
+            .from("attendance")
             .insert({
-                userId: user.id,
-                // gymId removed
+                user_id: user.id,
                 date: todayStr,
-                checkInTime: new Date().toISOString()
+                check_in_time: new Date().toISOString()
             })
             .select() // return created object
             .single()

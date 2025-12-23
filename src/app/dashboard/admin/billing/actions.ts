@@ -10,7 +10,7 @@ export async function createBillingRecord(formData: FormData) {
     if (!user) return
 
     // Role check
-    const { data: publicUser } = await supabase.from("User").select("role").eq("id", user.id).single()
+    const { data: publicUser } = await supabase.from("users").select("role").eq("id", user.id).single()
     if (publicUser?.role !== "ADMIN") return
 
     const userId = formData.get("userId") as string
@@ -18,9 +18,8 @@ export async function createBillingRecord(formData: FormData) {
     const method = formData.get("method") as string
     const note = formData.get("note") as string
 
-    await supabase.from("Billing").insert({
-        userId,
-        // gymId removed
+    await supabase.from("billing").insert({
+        user_id: userId,
         amount,
         method,
         note,

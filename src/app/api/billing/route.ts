@@ -12,7 +12,7 @@ export async function POST(req: Request) {
 
         // Verify Admin Role
         const { data: publicUser } = await supabase
-            .from("User")
+            .from("users")
             .select("role")
             .eq("id", user.id)
             .single()
@@ -29,10 +29,9 @@ export async function POST(req: Request) {
         }
 
         const { data: billing, error } = await supabase
-            .from("Billing")
+            .from("billing")
             .insert({
-                userId,
-                // gymId removed
+                user_id: userId,
                 amount: parseFloat(amount),
                 method,
                 note,
@@ -60,10 +59,9 @@ export async function GET(req: Request) {
         }
 
         const { data: history, error } = await supabase
-            .from("Billing")
+            .from("billing")
             .select("*")
-            .eq("userId", user.id)
-            // gymId query removed
+            .eq("user_id", user.id)
             .order("date", { ascending: false })
 
         if (error) throw error

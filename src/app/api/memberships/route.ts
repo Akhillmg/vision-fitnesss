@@ -12,7 +12,7 @@ export async function POST(req: Request) {
 
         // Verify Admin Role via Database
         const { data: publicUser } = await supabase
-            .from("User")
+            .from("users")
             .select("role")
             .eq("id", user.id)
             .single()
@@ -34,23 +34,22 @@ export async function POST(req: Request) {
 
         // Deactivate previous active memberships
         await supabase
-            .from("Membership")
+            .from("memberships")
             .update({ status: "expired" })
-            .eq("userId", userId)
+            .eq("user_id", userId)
             .eq("status", "active")
 
         // Create new membership
         const { data: membership, error } = await supabase
-            .from("Membership")
+            .from("memberships")
             .insert({
-                userId,
-                // gymId removed
-                planName,
+                user_id: userId,
+                plan_name: planName,
                 price: parseFloat(price),
-                startDate: startDate.toISOString(),
-                endDate: endDate.toISOString(),
+                start_date: startDate.toISOString(),
+                end_date: endDate.toISOString(),
                 status: "active",
-                updatedAt: new Date().toISOString()
+                updated_at: new Date().toISOString()
             })
             .select()
             .single()
@@ -74,12 +73,11 @@ export async function GET(req: Request) {
         }
 
         const { data: membership, error } = await supabase
-            .from("Membership")
+            .from("memberships")
             .select("*")
-            .eq("userId", user.id)
+            .eq("user_id", user.id)
             .eq("status", "active")
-            // gymId query removed
-            .order("endDate", { ascending: false })
+            .order("end_date", { ascending: false })
             .limit(1)
             .single()
 

@@ -10,15 +10,15 @@ export async function getTrainerStats() {
 
     // 1. My Clients Count
     const { count: clientCount, error: clientError } = await supabase
-        .from('User')
+        .from('users')
         .select('*', { count: 'exact', head: true })
-        .eq('assignedTrainerId', user.id)
+        .eq('assigned_trainer_id', user.id)
 
     // 2. My Workout Plans Created
     const { count: planCount, error: planError } = await supabase
-        .from('WorkoutTemplate')
+        .from('workout_templates')
         .select('*', { count: 'exact', head: true })
-        .eq('createdById', user.id)
+        .eq('trainer_id', user.id)
 
     return {
         clientCount: clientCount || 0,
@@ -33,15 +33,15 @@ export async function getMyClients() {
     if (!user) return []
 
     const { data, error } = await supabase
-        .from('User')
+        .from('users')
         .select(`
             id,
-            name,
+            full_name,
             email,
             role,
-            createdAt
+            created_at
         `)
-        .eq('assignedTrainerId', user.id)
+        .eq('assigned_trainer_id', user.id)
 
     if (error) {
         console.error("Error fetching clients:", error)
@@ -51,10 +51,10 @@ export async function getMyClients() {
     // Mapping to match expected interface if needed, or return as is assuming frontend expects User fields
     return data.map((client: any) => ({
         id: client.id,
-        full_name: client.name,
+        full_name: client.full_name,
         email: client.email,
         role: client.role,
         status: "active", // Dummy status
-        assigned_at: client.createdAt || new Date().toISOString()
+        assigned_at: client.created_at || new Date().toISOString()
     }))
 }

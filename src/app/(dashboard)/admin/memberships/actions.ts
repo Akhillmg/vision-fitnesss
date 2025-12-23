@@ -9,7 +9,7 @@ export async function createMembership(formData: FormData) {
 
     if (!user) return
 
-    const { data: publicUser } = await supabase.from("User").select("role").eq("id", user.id).single()
+    const { data: publicUser } = await supabase.from("users").select("role").eq("id", user.id).single()
     if (publicUser?.role !== "ADMIN") return
 
     const userId = formData.get("userId") as string
@@ -25,21 +25,20 @@ export async function createMembership(formData: FormData) {
 
     // Deactivate previous active memberships
     await supabase
-        .from("Membership")
+        .from("memberships")
         .update({ status: "expired" })
-        .eq("userId", userId)
+        .eq("user_id", userId)
         .eq("status", "active")
 
     // Create new membership
-    await supabase.from("Membership").insert({
-        userId,
-        // gymId removed
-        planName,
+    await supabase.from("memberships").insert({
+        user_id: userId,
+        plan_name: planName,
         price,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
         status: "active",
-        updatedAt: new Date().toISOString()
+        updated_at: new Date().toISOString()
     })
 
     revalidatePath("/admin/memberships")

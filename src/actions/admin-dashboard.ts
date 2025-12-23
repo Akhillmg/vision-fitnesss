@@ -7,22 +7,22 @@ export async function getAdminStats() {
 
     // 1. Total Members
     const { count: memberCount, error: memberError } = await supabase
-        .from('User')
+        .from('users')
         .select('*', { count: 'exact', head: true })
         .eq('role', 'MEMBER')
 
     // 2. Attendance Overview (Today's check-ins)
     const today = new Date().toISOString().split('T')[0]
     const { count: attendanceCount, error: attendanceError } = await supabase
-        .from('Attendance')
+        .from('attendance')
         .select('*', { count: 'exact', head: true })
-        .gte('date', today) // Note: check_in_time renamed to date? Need to verify column.
+        .gte('date', today)
 
     // 3. Pending Payments
     const { count: pendingPaymentsCount, error: paymentsError } = await supabase
-        .from('Billing')
+        .from('billing')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'PENDING') // enum matches capital?
+        .eq('status', 'PENDING')
 
     // 4. Membership Expiry Alerts (Expiring in next 7 days)
     const nextWeek = new Date()
@@ -31,10 +31,10 @@ export async function getAdminStats() {
 
     // Note: status 'active' and end_date <= nextWeek
     const { count: expiryCount, error: expiryError } = await supabase
-        .from('Membership')
+        .from('memberships')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'active')
-        .lte('endDate', nextWeekStr) // end_date -> endDate?
+        .lte('end_date', nextWeekStr)
 
     return {
         memberCount: memberCount || 0,

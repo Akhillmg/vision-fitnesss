@@ -104,11 +104,11 @@ export default async function MemberHomePage() {
                     <div className="flex justify-between items-center">
                         <div>
                             <span className="text-xs text-zinc-500 uppercase block mb-1">Active Membership</span>
-                            <span className="text-lg font-bold text-white">{Array.isArray(stats.membership.plan) ? stats.membership.plan[0]?.name : stats.membership.plan?.name}</span>
+                            <span className="text-lg font-bold text-white">{stats.membership.planName}</span>
                         </div>
                         <div className="text-right">
                             <span className="text-xs text-zinc-500 uppercase block mb-1">Valid Until</span>
-                            <span className="text-sm font-bold text-white">{new Date(stats.membership.end_date).toLocaleDateString()}</span>
+                            <span className="text-sm font-bold text-white">{new Date(stats.membership.endDate).toLocaleDateString()}</span>
                         </div>
                     </div>
                 </Card>

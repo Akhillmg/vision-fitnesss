@@ -20,15 +20,21 @@ export async function signUpAction(prevState: ActionState, formData: FormData): 
 
     const supabase = await createClient();
 
-    // Hardcoded codes for single-gym app
-    const ADMIN_CODE = "VISION-ADMIN";
-    const TRAINER_CODE = "VISION-TRAINER";
+    // 1. Fetch Gym Config
+    const { data: gym, error: gymError } = await supabase
+        .from("gym_config")
+        .select("id, admin_code, trainer_code")
+        .single();
+
+    if (gymError || !gym) {
+        return { error: "System Error: Gym settings not found." };
+    }
 
     // 2. Client-Side Role Validation
     if (role === "ADMIN") {
-        if (accessCode !== ADMIN_CODE) return { error: "Invalid Admin Access Code" };
+        if (accessCode !== gym.admin_code) return { error: "Invalid Admin Access Code" };
     } else if (role === "TRAINER") {
-        if (accessCode !== TRAINER_CODE) return { error: "Invalid Trainer Access Code" };
+        if (accessCode !== gym.trainer_code) return { error: "Invalid Trainer Access Code" };
     }
     // Member needs no code.
 
@@ -53,14 +59,13 @@ export async function signUpAction(prevState: ActionState, formData: FormData): 
     }
 
     // 4. Create Public User Record
-    const { error: dbError } = await supabase.from("User").insert({
+    const { error: dbError } = await supabase.from("users").insert({
         id: authData.user.id,
         email,
-        name,
+        full_name: name,
         password: "supabase-auth-managed",
         role: role,
-        // gymId removed
-        updatedAt: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
     });
 
     if (dbError) {
