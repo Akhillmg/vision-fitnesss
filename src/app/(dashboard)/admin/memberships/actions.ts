@@ -9,7 +9,7 @@ export async function createMembership(formData: FormData) {
 
     if (!user) return
 
-    const { data: publicUser } = await supabase.from("User").select("role, gymId").eq("id", user.id).single()
+    const { data: publicUser } = await supabase.from("User").select("role").eq("id", user.id).single()
     if (publicUser?.role !== "ADMIN") return
 
     const userId = formData.get("userId") as string
@@ -33,7 +33,7 @@ export async function createMembership(formData: FormData) {
     // Create new membership
     await supabase.from("Membership").insert({
         userId,
-        gymId: publicUser.gymId,
+        // gymId removed
         planName,
         price,
         startDate: startDate.toISOString(),

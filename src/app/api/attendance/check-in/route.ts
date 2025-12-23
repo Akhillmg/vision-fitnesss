@@ -10,17 +10,6 @@ export async function POST() {
             return new NextResponse("Unauthorized", { status: 401 })
         }
 
-        // Fetch public user to get gymId
-        const { data: publicUser } = await supabase
-            .from("User")
-            .select("gymId")
-            .eq("id", user.id)
-            .single()
-
-        if (!publicUser?.gymId) {
-            return new NextResponse("User profile incomplete", { status: 400 })
-        }
-
         // Normalize to start of day UTC to be consistent
         const today = new Date()
         today.setUTCHours(0, 0, 0, 0)
@@ -43,7 +32,7 @@ export async function POST() {
             .from("Attendance")
             .insert({
                 userId: user.id,
-                gymId: publicUser.gymId,
+                // gymId removed
                 date: todayStr,
                 checkInTime: new Date().toISOString()
             })

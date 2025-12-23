@@ -20,25 +20,15 @@ export async function signUpAction(prevState: ActionState, formData: FormData): 
 
     const supabase = await createClient();
 
-    // Default Gym for prototype (Vision Fitness)
-    const GYM_CODE = "VISION";
-
-    // 1. Fetch Gym
-    const { data: gym, error: gymError } = await supabase
-        .from("Gym")
-        .select("id, adminCode, trainerCode")
-        .eq("code", GYM_CODE)
-        .single();
-
-    if (gymError || !gym) {
-        return { error: "System Error: Default Gym not configured." };
-    }
+    // Hardcoded codes for single-gym app
+    const ADMIN_CODE = "VISION-ADMIN";
+    const TRAINER_CODE = "VISION-TRAINER";
 
     // 2. Client-Side Role Validation
     if (role === "ADMIN") {
-        if (accessCode !== gym.adminCode) return { error: "Invalid Admin Access Code" };
+        if (accessCode !== ADMIN_CODE) return { error: "Invalid Admin Access Code" };
     } else if (role === "TRAINER") {
-        if (accessCode !== gym.trainerCode) return { error: "Invalid Trainer Access Code" };
+        if (accessCode !== TRAINER_CODE) return { error: "Invalid Trainer Access Code" };
     }
     // Member needs no code.
 
@@ -69,7 +59,7 @@ export async function signUpAction(prevState: ActionState, formData: FormData): 
         name,
         password: "supabase-auth-managed",
         role: role,
-        gymId: gym.id,
+        // gymId removed
         updatedAt: new Date().toISOString(),
     });
 

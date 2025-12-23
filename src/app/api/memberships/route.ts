@@ -13,7 +13,7 @@ export async function POST(req: Request) {
         // Verify Admin Role via Database
         const { data: publicUser } = await supabase
             .from("User")
-            .select("role, gymId")
+            .select("role")
             .eq("id", user.id)
             .single()
 
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
             .from("Membership")
             .insert({
                 userId,
-                gymId: publicUser.gymId,
+                // gymId removed
                 planName,
                 price: parseFloat(price),
                 startDate: startDate.toISOString(),
@@ -73,21 +73,12 @@ export async function GET(req: Request) {
             return new NextResponse("Unauthorized", { status: 401 })
         }
 
-        // Get context from public user
-        const { data: publicUser } = await supabase
-            .from("User")
-            .select("gymId")
-            .eq("id", user.id)
-            .single()
-
-        if (!publicUser) return new NextResponse("User not found", { status: 404 })
-
         const { data: membership, error } = await supabase
             .from("Membership")
             .select("*")
             .eq("userId", user.id)
             .eq("status", "active")
-            .eq("gymId", publicUser.gymId)
+            // gymId query removed
             .order("endDate", { ascending: false })
             .limit(1)
             .single()

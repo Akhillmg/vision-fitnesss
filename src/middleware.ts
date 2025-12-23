@@ -42,7 +42,7 @@ export async function middleware(request: NextRequest) {
     const path = url.pathname;
 
     const isAuthRoute = path.startsWith("/login") || path.startsWith("/register");
-    const isPublicRoute = path === "/" || path.startsWith("/public");
+    const isPublicRoute = path === "/" || path.startsWith("/public") || path.startsWith("/setup-gym");
     const isOnboardingRoute = path.startsWith("/onboarding");
 
     // If NOT logged in

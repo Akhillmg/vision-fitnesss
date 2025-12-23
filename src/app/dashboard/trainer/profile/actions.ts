@@ -9,14 +9,6 @@ export async function updateProfile(formData: FormData) {
 
     if (!user) throw new Error("Unauthorized")
 
-    const { data: publicUser } = await supabase
-        .from("User")
-        .select("id, gymId")
-        .eq("id", user.id)
-        .single()
-
-    if (!publicUser?.gymId) throw new Error("Unauthorized")
-
     const bio = formData.get("bio") as string
     const specialties = formData.get("specialties") as string
 
@@ -25,7 +17,6 @@ export async function updateProfile(formData: FormData) {
         .from("TrainerProfile")
         .upsert({
             userId: user.id,
-            gymId: publicUser.gymId,
             bio,
             specialties
         }, { onConflict: 'userId' })

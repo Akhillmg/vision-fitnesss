@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, Dumbbell, History, TrendingUp, Users, LogOut, CheckCircle2, CreditCard, Receipt } from 'lucide-react'
-import { signOut } from 'next-auth/react' // Client side signout
+import { signOutAction } from '@/lib/auth-actions'
 import { clsx } from 'clsx'
 
 export function Sidebar({ userRole }: { userRole?: string }) {
@@ -11,37 +11,36 @@ export function Sidebar({ userRole }: { userRole?: string }) {
 
     // Default Member Links
     let links = [
-        { href: '/member/home', label: 'Home', icon: Home }, // Assuming /dashboard redirects here or using /member/home
-        { href: '/member/attendance', label: 'Attendance', icon: CheckCircle2 },
-        { href: '/member/membership', label: 'Membership', icon: CreditCard },
-        { href: '/member/billing', label: 'Billing', icon: Receipt },
-        { href: '/member/trainers', label: 'Coaches', icon: Users },
-        { href: '/workout/today', label: 'Log Workout', icon: Dumbbell },
-        { href: '/history', label: 'History', icon: History },
+        { href: '/dashboard/member/home', label: 'Home', icon: Home },
+        { href: '/dashboard/member/attendance', label: 'Attendance', icon: CheckCircle2 },
+        { href: '/dashboard/member/membership', label: 'Membership', icon: CreditCard },
+        { href: '/dashboard/member/billing', label: 'Billing', icon: Receipt },
+        { href: '/dashboard/member/trainers', label: 'Coaches', icon: Users },
+        // { href: '/workout/today', label: 'Log Workout', icon: Dumbbell },
+        // { href: '/history', label: 'History', icon: History },
         // { href: '/progress', label: 'Progress', icon: TrendingUp },
     ]
 
     if (userRole === 'ADMIN') {
         links = [
-            { href: '/admin/dashboard', label: 'Dashboard', icon: Home },
-            { href: '/admin/attendance', label: 'Attendance', icon: CheckCircle2 },
-            { href: '/admin/memberships', label: 'Memberships', icon: CreditCard },
-            { href: '/admin/billing', label: 'Billing', icon: Receipt },
-            { href: '/admin/users', label: 'Users', icon: Users },
+            { href: '/dashboard/admin/dashboard', label: 'Dashboard', icon: Home },
+            { href: '/dashboard/admin/attendance', label: 'Attendance', icon: CheckCircle2 },
+            { href: '/dashboard/admin/memberships', label: 'Memberships', icon: CreditCard },
+            { href: '/dashboard/admin/billing', label: 'Billing', icon: Receipt },
+            { href: '/dashboard/admin/users', label: 'Users', icon: Users },
         ]
     } else if (userRole === 'TRAINER') {
-        links.push({ href: '/trainer', label: 'Trainer Area', icon: Users })
-        // Trainer can view attendance too? prompt said "Trainer: View attendance per client"
-        // For now, let's keep it simple.
-    } else {
-        // Ensure path correctness for existing app
-        // The existing app had /dashboard, check if I should keep it
+        links = [
+            { href: '/dashboard/trainer/dashboard', label: 'Dashboard', icon: Home },
+            { href: '/dashboard/trainer/clients', label: 'My Clients', icon: Users },
+            { href: '/dashboard/trainer/programs', label: 'Workout Plans', icon: Dumbbell }
+        ]
     }
 
     return (
         <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-zinc-950 border-r border-zinc-900 text-white hidden md:flex flex-col">
             <div className="p-6">
-                <h1 className="text-2xl font-bold tracking-tighter text-emerald-500">Antigravity<span className="text-white">Fit</span></h1>
+                <Link href="/" className="text-2xl font-bold tracking-tighter text-emerald-500">Antigravity<span className="text-white">Fit</span></Link>
             </div>
 
             <nav className="flex-1 px-4 space-y-2">
@@ -64,7 +63,7 @@ export function Sidebar({ userRole }: { userRole?: string }) {
 
             <div className="p-4 border-t border-zinc-900">
                 <button
-                    onClick={() => signOut()}
+                    onClick={() => signOutAction()}
                     className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                 >
                     <LogOut size={20} />

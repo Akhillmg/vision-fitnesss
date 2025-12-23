@@ -69,12 +69,9 @@ export async function checkIn() {
     if (!user) return { error: "Unauthorized" }
 
     // Fetch GymID
-    const { data: profile } = await supabase.from("User").select("gymId").eq("id", user.id).single()
-    if (!profile?.gymId) return { error: "Profile incomplete." }
-
     const { error } = await supabase.from('Attendance').insert({
         userId: user.id,
-        gymId: profile.gymId,
+        // gymId removed
         date: new Date().toISOString().split('T')[0], // Using today's date YYYY-MM-DD
         checkInTime: new Date().toISOString()
     })
