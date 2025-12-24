@@ -20,8 +20,8 @@ drop table if exists "AppSettings" cascade;
 create table public.gym_config (
   id uuid default gen_random_uuid() primary key,
   gym_name text default 'Vision Fitness',
-  admin_code text default 'VISION-ADMIN',
-  trainer_code text default 'VISION-TRAINER',
+  admin_code text default 'admin123',
+  trainer_code text default 'trainer123',
   created_at timestamp with time zone default now()
 );
 
