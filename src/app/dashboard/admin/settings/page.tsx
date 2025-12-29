@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { updateAdminPassword } from "@/actions/admin-settings"
+import { updateAdminPassword, updateTrainerPassword } from "@/actions/admin-settings"
 
 export default function AdminSettingsPage() {
     const [password, setPassword] = useState("")
@@ -76,7 +76,7 @@ function TrainerSettings() {
     const [password, setPassword] = useState("")
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-    const { updateTrainerPassword, getTrainerPassword } = require("@/actions/admin-settings")
+
 
     // Ideally load current password on mount? No, keep it hidden unless explicitly requested or just set new.
     // But user might want to see it. 

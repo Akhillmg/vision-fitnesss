@@ -41,5 +41,36 @@ export async function createMembership(formData: FormData) {
         updated_at: new Date().toISOString()
     })
 
-    revalidatePath("/admin/memberships")
+    revalidatePath("/dashboard/admin/memberships")
+}
+
+export async function getMembers() {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+        .from("users")
+        .select(`
+            id,
+            full_name,
+            email,
+            status,
+            memberships (
+                plan_name,
+                status,
+                end_date
+            )
+        `)
+        .eq("role", "MEMBER")
+        .order("created_at", { ascending: false })
+
+    if (error) {
+        console.error("Error fetching members:", error)
+        return []
+    }
+
+    // Process data to get active membership easier
+    return data?.map(user => ({
+        ...user,
+        active_membership: user.memberships?.find((m: any) => m.status === 'active') || null
+    })) || []
 }

@@ -43,7 +43,8 @@ export default function RegisterPage() {
 
                         <div className="space-y-2">
                             <label className="text-sm text-zinc-400">Join as</label>
-                            <Select name="role" defaultValue="MEMBER" onValueChange={setRole}>
+                            <input type="hidden" name="role" value={role} />
+                            <Select defaultValue="MEMBER" onValueChange={setRole}>
                                 <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
                                     <SelectValue placeholder="Select Role" />
                                 </SelectTrigger>

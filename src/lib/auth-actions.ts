@@ -73,7 +73,8 @@ export async function signUpAction(prevState: ActionState, formData: FormData): 
         return { error: "Failed to create user profile: " + dbError.message };
     }
 
-    return { success: true };
+    // Force strict redirect to trigger middleware re-eval
+    redirect("/dashboard");
 }
 
 

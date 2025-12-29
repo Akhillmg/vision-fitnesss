@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Home, Users, CreditCard, Dumbbell } from "lucide-react"
+import { Home, Users, CreditCard, Dumbbell, Settings } from "lucide-react"
 import { LogoutButton } from "@/components/logout-button"
 
 export default function AdminLayout({
@@ -29,9 +29,12 @@ export default function AdminLayout({
                     <Link href="/dashboard/admin/billing" className="flex items-center gap-3 rounded-lg px-3 py-2 text-zinc-400 hover:bg-zinc-900 hover:text-white transition-colors">
                         <CreditCard size={18} /> Billing
                     </Link>
+                    <Link href="/dashboard/admin/settings" className="flex items-center gap-3 rounded-lg px-3 py-2 text-zinc-400 hover:bg-zinc-900 hover:text-white transition-colors">
+                        <Settings size={18} /> Settings
+                    </Link>
                 </nav>
 
-                <div className="border-t border-zinc-900 pt-4">
+                <div className="pt-4 mt-auto">
                     <LogoutButton />
                 </div>
             </aside>

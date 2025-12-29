@@ -3,6 +3,50 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
+export async function getMembers() {
+    const supabase = await createClient()
+
+    // 1. Fetch users with ROLE 'MEMBER'
+    // We also want to see their active membership if it exists.
+    // Note: 'memberships' is the table, linked by user_id.
+    const { data: members, error } = await supabase
+        .from('users')
+        .select(`
+            id,
+            full_name,
+            email,
+            role,
+            memberships (
+                plan_name,
+                end_date,
+                status
+            )
+        `)
+        .eq('role', 'MEMBER')
+        .order('full_name')
+
+    if (error) {
+        console.error("Error fetching members:", error)
+        return []
+    }
+
+    // 2. Transform filtering for the "active" one if multiple exist (though usually one active allowed)
+    return members.map((member: any) => {
+        // Filter for an active membership
+        const activePlan = member.memberships?.find((m: any) => m.status === 'active')
+
+        return {
+            id: member.id,
+            full_name: member.full_name,
+            email: member.email,
+            active_membership: activePlan ? {
+                plan_name: activePlan.plan_name,
+                end_date: activePlan.end_date
+            } : null
+        }
+    })
+}
+
 export async function createMembership(formData: FormData) {
     const supabase = await createClient()
 

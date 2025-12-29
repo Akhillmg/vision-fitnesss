@@ -14,9 +14,9 @@ export function LogoutButton({ variant = "ghost" }: { variant?: "ghost" | "defau
             size="sm"
             disabled={isPending}
             onClick={() => startTransition(() => signOutAction())}
-            className="gap-2"
+            className="gap-3 w-full justify-start text-zinc-400 hover:text-white"
         >
-            <LogOut size={16} />
+            <LogOut size={18} />
             {isPending ? "Exiting..." : "Log Out"}
         </Button>
     )
