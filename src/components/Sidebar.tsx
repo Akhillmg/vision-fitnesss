@@ -10,15 +10,15 @@ export function Sidebar({ userRole }: { userRole?: string }) {
     const pathname = usePathname()
 
     // Default Member Links
+    // Default Member Links
     let links = [
         { href: '/dashboard/member/home', label: 'Home', icon: Home },
+        { href: '/dashboard/member/ai-coach', label: 'Vision AI', icon: TrendingUp },
+        { href: '/dashboard/member/workout', label: 'Workouts', icon: Dumbbell },
+        { href: '/dashboard/member/community', label: 'Community', icon: Users }, // Replaced 'Coaches' with Community as Trainers is usually less accessed or can be sub-menu
         { href: '/dashboard/member/attendance', label: 'Attendance', icon: CheckCircle2 },
         { href: '/dashboard/member/membership', label: 'Membership', icon: CreditCard },
         { href: '/dashboard/member/billing', label: 'Billing', icon: Receipt },
-        { href: '/dashboard/member/trainers', label: 'Coaches', icon: Users },
-        // { href: '/workout/today', label: 'Log Workout', icon: Dumbbell },
-        // { href: '/history', label: 'History', icon: History },
-        // { href: '/progress', label: 'Progress', icon: TrendingUp },
     ]
 
     if (userRole === 'ADMIN') {

@@ -1,7 +1,7 @@
 import { getMemberStats } from "@/actions/member-dashboard"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Flame, Play } from "lucide-react"
+import { Flame, Play, Sparkles } from "lucide-react"
 
 function getGreeting() {
     const hour = new Date().getHours()
@@ -40,6 +40,22 @@ export default async function MemberHomePage() {
                         {stats.isCheckedIn ? "✅ Checked In" : "📍 Check In Now"}
                     </button>
                 </form>
+            </div>
+
+            {/* AI Coach Banner */}
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-indigo-900 via-purple-900 to-zinc-900 border border-indigo-500/30 p-6 shadow-lg shadow-indigo-900/20">
+                <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-indigo-500 w-24 h-24 rounded-full blur-3xl opacity-20"></div>
+                <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Sparkles className="w-5 h-5 text-indigo-400" />
+                        <span className="text-xs font-bold uppercase tracking-wider text-indigo-300">New Feature</span>
+                    </div>
+                    <h2 className="text-xl font-black text-white mb-2">Build Your Dream Body with AI</h2>
+                    <p className="text-sm text-indigo-200/80 mb-4 max-w-[80%]">Get a customized workout and nutrition plan in seconds.</p>
+                    <Button asChild className="bg-white text-indigo-950 hover:bg-indigo-50 hover:text-indigo-900 font-bold">
+                        <a href="/dashboard/member/ai-coach">Launch Vision AI</a>
+                    </Button>
+                </div>
             </div>
 
             {/* Expiring / Payment Alerts */}
